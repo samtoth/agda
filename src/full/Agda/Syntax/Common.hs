@@ -1861,7 +1861,7 @@ prettyLock a = (pretty (getLock a) <+>)
 data Cohesion
   = Flat        -- ^ same points, discrete topology, idempotent comonad, box-like.
   | Continuous  -- ^ identity modality.
-  -- | Sharp    -- ^ same points, codiscrete topology, idempotent monad, diamond-like.
+  | Sharp    -- ^ same points, codiscrete topology, idempotent monad, diamond-like.
   | Squash      -- ^ single point space, artificially added for Flat left-composition.
     deriving (Show, Eq, Enum, Bounded, Generic)
 
@@ -1880,11 +1880,13 @@ instance KillRange Cohesion where
 instance NFData Cohesion where
   rnf Flat       = ()
   rnf Continuous = ()
+  rnf Sharp      = ()
   rnf Squash     = ()
 
 instance Pretty Cohesion where
   pretty Flat   = "@♭"
   pretty Continuous = mempty
+  pretty Sharp = "@♯"
   pretty Squash  = "@⊤"
 
 -- | A lens to access the 'Cohesion' attribute in data structures.
@@ -1931,11 +1933,15 @@ instance Ord Cohesion where
     -- top
     (_, Squash) -> LT
     (Squash, _) -> GT
+    -- ♭ < id < ♯
+    (Sharp,Continuous) -> GT
+    (Continuous,Sharp) -> LT
     -- bottom
     (Flat, _) -> LT
     (_, Flat) -> GT
-    -- redundant case
+    -- redundant cases
     (Continuous,Continuous) -> EQ
+    (Sharp,Sharp)           -> EQ
 
 -- | Flatter is smaller.
 instance PartialOrd Cohesion where
@@ -1952,7 +1958,9 @@ composeCohesion r r' =
   case (r, r') of
     (Squash, _) -> Squash
     (_, Squash) -> Squash
+    (Sharp, _) -> Sharp
     (Flat, _)  -> Flat
+    (_, Sharp) -> Sharp
     (_, Flat)  -> Flat
     (Continuous, Continuous) -> Continuous
 
@@ -1974,6 +1982,8 @@ inverseComposeCohesion r x =
     (Continuous  , x) -> x          -- going to continous arg.: nothing changes
                                     -- because Continuous is comp.-neutral
     (Squash, _)       -> Flat       -- in squash position everything is usable
+    (Sharp, Squash)   -> Squash     -- in sharp everything is usable apart from
+    (Sharp, _)        -> Flat       -- squash
     (Flat , Flat)     -> Flat       -- otherwise: Flat things remain Flat
     (Flat , _)        -> Squash     -- but everything else becomes unusable.
 

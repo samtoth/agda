@@ -2200,6 +2200,7 @@ instance Verbalize Cohesion where
   verbalize = \case
       Flat       -> "flat"
       Continuous -> "continuous"
+      Sharp      -> "sharp"
       Squash     -> "squashed"
 
 instance Verbalize ModalPolarity where
