@@ -118,6 +118,8 @@ cohesionAttributeTable :: [(String, Cohesion)]
 cohesionAttributeTable =
   [ ("♭"    , Flat)
   , ("flat" , Flat)
+  , ("♯"    , Sharp)
+  , ("sharp", Sharp)
   ]
 
 -- | Information about attributes (attribute, range, printed
