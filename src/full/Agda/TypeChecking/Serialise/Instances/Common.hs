@@ -606,17 +606,26 @@ instance EmbPrj Quantity where
 --   value 2 = return Quantityω
 --   value _ = malformed
 
-instance EmbPrj Cohesion where
+instance EmbPrj CohMod where
   icod_ Flat       = return 0
   icod_ Continuous = return 1
-  icod_ Squash     = return 2
-  icod_ Sharp      = return 3
+  icod_ Sharp      = return 2
+  icod_ Op         = return 3
 
   value 0 = return Flat
   value 1 = return Continuous
-  value 2 = return Squash
-  value 3 = return Sharp
+  value 2 = return Sharp
+  value 3 = return Op
   value _ = malformed
+
+instance EmbPrj Cohesion where
+  icod_  (Coh r l) = icod_ (r, l)
+
+  value n = do
+    (r, l) <- polPair
+    return (Coh r l) where
+      polPair :: R (CohMod, CohMod)
+      polPair = value n
 
 instance EmbPrj ModalPolarity where
   icod_ UnusedPolarity = return 0

@@ -104,10 +104,15 @@ attributesForModality mod@(Modality r q c p)
       Quantity1{} -> Just "@1"
       Quantityω{} -> Nothing
     cohesion = case c of
-      Flat{}       -> Just "@♭"
-      Continuous{} -> Nothing
-      Sharp{}      -> Just "@♯"
-      Squash{}     -> Just "@⊤"
+      (Coh Continuous Continuous) -> Nothing
+      (Coh m Continuous) -> Just $ "@" <> cohMod m
+      (Coh Continuous m) -> Just $ "@id/" <> cohMod m
+      (Coh a b) -> Just $ "@" <> cohMod a <> "/" <> cohMod b
+    cohMod x = case x of
+      Flat{}       -> "♭"
+      Continuous{} -> "id"
+      Sharp{}      -> "♯"
+      Op{}         -> "op"
     polarity = case modPolarityAnn p of
       MixedPolarity    -> "@mixed"
       Positive         -> "@+"

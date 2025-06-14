@@ -116,10 +116,11 @@ quantityAttributeTable =
 
 cohesionAttributeTable :: [(String, Cohesion)]
 cohesionAttributeTable =
-  [ ("♭"    , Flat)
-  , ("flat" , Flat)
-  , ("♯"    , Sharp)
-  , ("sharp", Sharp)
+  [ ("♭"    , (Coh Flat Continuous))
+  , ("flat" , (Coh Flat Continuous))
+  , ("♯"    , (Coh Sharp Continuous))
+  , ("sharp", (Coh Sharp Continuous))
+  , ("op"   , (Coh Op    Continuous))
   ]
 
 -- | Information about attributes (attribute, range, printed

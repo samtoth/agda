@@ -1336,7 +1336,7 @@ checkLHS mf = updateModality checkLHS_ where
       -- transpX clause for @♭ matching.
       -- TODO(Amy): properly support transpX when @♭ stuff is in the
       -- context.
-      let genTrx = boolToMaybe ((getCohesion info == Flat)) SplitOnFlat
+      let genTrx = boolToMaybe ((cohMod (getCohesion info) == Flat)) SplitOnFlat
 
       -- We should be at a data/record type
       (dr, d, s, pars, ixs) <- addContext delta1 $ isDataOrRecordType a

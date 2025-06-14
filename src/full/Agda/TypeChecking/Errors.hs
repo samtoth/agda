@@ -2151,12 +2151,16 @@ instance Verbalize Quantity where
     Quantity1{} -> "linear"
     Quantityω{} -> "unrestricted"
 
-instance Verbalize Cohesion where
+instance Verbalize CohMod where
   verbalize = \case
       Flat       -> "flat"
       Continuous -> "continuous"
       Sharp      -> "sharp"
-      Squash     -> "squashed"
+      Op         -> "op"
+
+instance Verbalize Cohesion where
+  verbalize = \case
+    (Coh r l) -> verbalize l <> " locked " <> verbalize r
 
 instance Verbalize ModalPolarity where
   verbalize = \case

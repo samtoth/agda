@@ -220,7 +220,7 @@ instance UsableModality Term where
       fmod <- modalityOfConst f
       -- Pure modalities don't matter here, only positional ones, hence remove
       -- them from the equation.
-      let ok = setModalPolarity (withStandardLock MixedPolarity) (setCohesion Flat fmod) `moreUsableModality` mod
+      let ok = setModalPolarity (withStandardLock MixedPolarity) (setCohesion (Coh Flat Sharp) fmod) `moreUsableModality` mod
       reportSDoc "tc.irr" 50 $
         "Definition" <+> prettyTCM (Def f []) <+>
         text ("has modality " ++ show fmod ++ ", which is a " ++

@@ -615,7 +615,7 @@ checkRecordProjections m r hasNamedCon con tel ftel fs = do
           , "coh   =" <+> (text . show) (getCohesion ai)
           ]
 
-      unless (getCohesion ai == Continuous) __IMPOSSIBLE__
+      unless (getCohesion ai == (Coh Continuous Continuous)) __IMPOSSIBLE__
       -- Andreas, 2025-05-03, moved check to ConcreteToAbstract.checkFieldArgInfo.
       -- -- Cohesion check:
       -- -- For a field `@c π : A` we would create a projection `π : .., (@(c^-1) r : R as) -> A`

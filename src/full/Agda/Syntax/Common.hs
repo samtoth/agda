@@ -1851,18 +1851,28 @@ prettyLock a = (pretty (getLock a) <+>)
 -- * Cohesion
 ---------------------------------------------------------------------------
 
+data CohMod
+  = Flat         -- ^ same points, discrete topology, idempotent comonad, box-like.
+  | Continuous    -- ^ identity modality.
+  | Sharp        -- ^ same points, codiscrete topology, idempotent monad, diamond-like.
+  | Op
+    deriving (Show, Eq, Enum, Bounded, Generic)
+
 -- | Cohesion modalities
 --   see "Brouwer's fixed-point theorem in real-cohesive homotopy type theory" (arXiv:1509.07584)
 --   types are now given an additional topological layer which the modalities interact with.
 data Cohesion
-  = Flat        -- ^ same points, discrete topology, idempotent comonad, box-like.
-  | Continuous  -- ^ identity modality.
-  | Sharp    -- ^ same points, codiscrete topology, idempotent monad, diamond-like.
-  | Squash      -- ^ single point space, artificially added for Flat left-composition.
-    deriving (Show, Eq, Enum, Bounded, Generic)
+  = Coh
+    {  cohMod :: CohMod
+    ,  cohLocks :: CohMod
+    }
+  deriving (Show, Eq, Bounded, Generic)
+
+allCmods :: [CohMod]
+allCmods = [minBound..maxBound]
 
 allCohesions :: [Cohesion]
-allCohesions = [minBound..maxBound]
+allCohesions = [(Coh a b) | a <- allCmods, b <- allCmods]
 
 instance HasRange Cohesion where
   getRange _ = noRange
@@ -1873,17 +1883,26 @@ instance SetRange Cohesion where
 instance KillRange Cohesion where
   killRange rel = rel -- no range to kill
 
-instance NFData Cohesion where
+instance NFData CohMod where
   rnf Flat       = ()
   rnf Continuous = ()
   rnf Sharp      = ()
-  rnf Squash     = ()
+  rnf Op         = ()
+
+instance NFData Cohesion where
+  rnf (Coh a b) = seq (rnf a) $ rnf b
+
+instance Pretty CohMod where
+  pretty Flat   = "♭"
+  pretty Continuous = mempty
+  pretty Sharp = "♯"
+  pretty Op = "op"
 
 instance Pretty Cohesion where
-  pretty Flat   = "@♭"
-  pretty Continuous = mempty
-  pretty Sharp = "@♯"
-  pretty Squash  = "@⊤"
+  pretty (Coh Continuous Continuous) = mempty
+  pretty (Coh m Continuous) = "@" <> pretty m
+  pretty (Coh Continuous l) = "@id/" <> pretty l
+  pretty (Coh m l) = "@" <> pretty m <> "/" <> pretty l
 
 -- | A lens to access the 'Cohesion' attribute in data structures.
 --   Minimal implementation: @getCohesion@ and @mapCohesion@ or @LensModality@.
@@ -1908,7 +1927,9 @@ instance LensCohesion Cohesion where
   mapCohesion = id
 
 isContinuous :: LensCohesion a => a -> Bool
-isContinuous = (Continuous ==) . getCohesion
+isContinuous a = case getCohesion a of
+                   (Coh Continuous _) -> True
+                   _                  -> False
 
 -- | Information ordering.
 -- @Flat  \`moreCohesion\`
@@ -1924,41 +1945,64 @@ sameCohesion = (==)
 
 -- | Order is given by implication: flatter is smaller.
 instance Ord Cohesion where
-  compare = curry $ \case
-    (r, r') | r == r' -> EQ
-    -- top
-    (_, Squash) -> LT
-    (Squash, _) -> GT
-    -- ♭ < id < ♯
-    (Sharp,Continuous) -> GT
-    (Continuous,Sharp) -> LT
-    -- bottom
-    (Flat, _) -> LT
-    (_, Flat) -> GT
-    -- redundant cases
-    (Continuous,Continuous) -> EQ
-    (Sharp,Sharp)           -> EQ
+  -- todo: compare like division a/b <= c/d <-> ad <= cb
+  (Coh a b) <= (Coh c d) = isAccessible (Coh (composeComod a d) (composeComod c b))
 
--- | Flatter is smaller.
+    -- (r, r') | r == r' -> EQ
+    -- -- top
+    -- (_, Sharp) -> LT
+    -- (Sharp, _) -> GT
+    -- -- -- ♭ < id < ♯
+    -- -- (Sharp,Continuous) -> GT
+    -- -- (Continuous,Sharp) -> LT
+    -- -- bottom
+    -- (Flat, _) -> LT
+    -- (_, Flat) -> GT
+    -- -- redundant case
+    -- (Continuous,Continuous) -> EQ
+    -- -- Cohesian is now not a total order, but anyway modality type needs
+    -- -- it so we will give some rubbish
+    -- (_,_) -> __IMPOSSIBLE__
+
+-- | More relevant is smaller.
 instance PartialOrd Cohesion where
   comparable = comparableOrd
 
+-- | Flatter is smaller.
+instance PartialOrd CohMod where
+  comparable Flat b = POLE
+  comparable a Sharp = POLE
+  comparable Continuous Continuous = POEQ
+  comparable Op Op = POEQ
+  comparable _ _ = POAny
+
+
+isAccessible :: Cohesion -> Bool
+isAccessible (Coh r l) = related r POLE l
+
 -- | @usableCohesion rel == False@ iff we cannot use a variable of @rel@.
 usableCohesion :: LensCohesion a => a -> Bool
-usableCohesion a = getCohesion a `moreCohesion` Continuous
+usableCohesion = isAccessible . getCohesion
+
+-- | 'Cohesion' composition.
+--   'Squash' is dominant, 'Continuous' is neutral.
+composeComod :: CohMod -> CohMod -> CohMod
+composeComod r r' =
+  case (r, r') of
+    (Op, Op)   -> Continuous
+    (Op, Continuous) -> Op
+    (Op, x) -> x
+
+    (Sharp, _) -> Sharp
+    (Flat, _)  -> Flat
+    -- (_, Sharp) -> Sharp
+    -- (_, Flat)  -> Flat
+    (Continuous, y) -> y
 
 -- | 'Cohesion' composition.
 --   'Squash' is dominant, 'Continuous' is neutral.
 composeCohesion :: Cohesion -> Cohesion -> Cohesion
-composeCohesion r r' =
-  case (r, r') of
-    (Squash, _) -> Squash
-    (_, Squash) -> Squash
-    (Sharp, _) -> Sharp
-    (Flat, _)  -> Flat
-    (_, Sharp) -> Sharp
-    (_, Flat)  -> Flat
-    (Continuous, Continuous) -> Continuous
+composeCohesion (Coh r l) (Coh r' l') = Coh (composeComod r r') (composeComod l l')
 
 -- | Compose with cohesion flag from the left.
 --   This function is e.g. used to update the cohesion information
@@ -1973,15 +2017,17 @@ applyCohesion rel = mapCohesion (rel `composeCohesion`)
 --   @(r \`inverseComposeCohesion\` x) \`moreCohesion\` y@ (Galois connection).
 --   The above law fails for @r = Squash@.
 inverseComposeCohesion :: Cohesion -> Cohesion -> Cohesion
-inverseComposeCohesion r x =
-  case (r, x) of
-    (Continuous  , x) -> x          -- going to continous arg.: nothing changes
-                                    -- because Continuous is comp.-neutral
-    (Squash, x)       -> Flat       -- in squash position everything is usable
-    (Sharp, Squash)   -> Squash     -- in sharp everything is usable apart from
-    (Sharp, _)        -> Flat       -- squash
-    (Flat , Flat)     -> Flat       -- otherwise: Flat things remain Flat
-    (Flat , _)        -> Squash     -- but everything else becomes unusable.
+inverseComposeCohesion (Coh r l) (Coh r' l') = Coh (composeComod r' l) (composeComod l' r) -- l ought to be id here
+  -- case (r, x) of
+  --   (Continuous  , x) -> x          -- going to continous arg.: nothing changes
+  --                                   -- because Continuous is comp.-neutral
+  --   (Squash, x)       -> Flat       -- in squash position everything is usable
+
+  --   -- (Sharp, Squash)   -> Squash  -- in sharp everything is usable apart from
+  --   (Sharp, _)        -> Flat       -- squash
+
+  --   (Flat , Flat)     -> Flat       -- otherwise: Flat things remain Flat
+  --   (Flat , _)        -> Squash     -- but everything else becomes unusable.
 
 -- | Left division by a 'Cohesion'.
 --   Used e.g. to modify context when going into a @rel@ argument.
@@ -2022,15 +2068,15 @@ addCohesion = min
 
 -- | 'Cohesion' forms a monoid under addition, and even a semiring.
 zeroCohesion :: Cohesion
-zeroCohesion = Squash
+zeroCohesion = Coh Sharp Flat
 
 -- | Identity under composition
 unitCohesion :: Cohesion
-unitCohesion = Continuous
+unitCohesion = Coh Continuous Continuous
 
 -- | Absorptive element under addition.
 topCohesion :: Cohesion
-topCohesion = Flat
+topCohesion = Coh Flat Sharp
 
 -- | Default Cohesion is the identity element under composition
 defaultCohesion :: Cohesion
@@ -2040,7 +2086,7 @@ defaultCohesion = unitCohesion
 instance Null Cohesion where
   empty = defaultCohesion
   null = \case
-    Continuous -> True
+    (Coh Continuous Continuous) -> True
     _ -> False
 
 prettyCohesion :: LensCohesion a => a -> Doc -> Doc

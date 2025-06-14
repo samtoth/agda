@@ -526,7 +526,7 @@ patternSynArgs = mapM \ x -> do
         case ai of
 
           -- Benign case:
-          ArgInfo h (Modality Relevant{} (Quantityω _) Continuous (PolarityModality { modPolarityAnn = MixedPolarity })) UserWritten UnknownFVs (Annotation IsNotLock) ->
+          ArgInfo h (Modality Relevant{} (Quantityω _) (Coh Continuous Continuous) (PolarityModality { modPolarityAnn = MixedPolarity })) UserWritten UnknownFVs (Annotation IsNotLock) ->
             return $ WithHiding h n
 
           -- Error cases:
@@ -540,7 +540,7 @@ patternSynArgs = mapM \ x -> do
                 abort $ noAnn "Quantity"
             | modPolarityAnn p /= MixedPolarity ->
                 abort $ noAnn "Polarity"
-            | c /= Continuous ->
+            | c /= (Coh Continuous Continuous) ->
                 abort $ noAnn "Cohesion"
 
           -- Invariant: origin and fvs not used.
