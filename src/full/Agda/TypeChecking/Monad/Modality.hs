@@ -134,11 +134,12 @@ applyCohesionToContextOnly q = localTC
   $ over eContext     (map $ inverseApplyCohesion q)
   . over eLetBindings (Map.map . fmap . onLetBindingType $ inverseApplyCohesion q)
 
+-- | TODO - Sam: Think about this, when should we be able to match?
 -- | Can we split on arguments of the given cohesion?
 splittableCohesion :: (HasOptions m, LensCohesion a) => a -> m Bool
 splittableCohesion a = do
   let c = getCohesion a
-  pure (usableCohesion c) `and2M` (pure (c /= Flat) `or2M` do optFlatSplit <$> pragmaOptions)
+  pure (usableCohesion c) `and2M` (pure (c == (Coh Continuous Continuous)) `or2M` do optFlatSplit <$> pragmaOptions)
 
 
 {-# SPECIALIZE applyModalityToContext :: Modality -> TCM a -> TCM a #-}

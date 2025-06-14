@@ -1002,7 +1002,7 @@ computeNeighbourhood delta1 n delta2 d pars ixs hix tel ps cps c = do
   -- transpX clause for @♭ matching.
   -- TODO(Amy): properly support transpX when @♭ stuff is in the
   -- context.
-  let flatSplit = boolToMaybe (getCohesion info == Flat) SplitOnFlat
+  let flatSplit = boolToMaybe (cohMod (getCohesion info) == Flat) SplitOnFlat
 
   r <- withKIfStrict $ lift $
            unifyIndices' flatSplit

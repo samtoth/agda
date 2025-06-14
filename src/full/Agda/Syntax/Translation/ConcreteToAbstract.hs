@@ -2793,8 +2793,8 @@ ensureNotLinear s info = do
 ensureContinuous :: LensCohesion a => Maybe String -> a -> ScopeM a
 ensureContinuous ms info
   | isContinuous info = return info
-  | otherwise = setCohesion Continuous info <$ do
-      whenJust ms \ s -> warning $ FixingCohesion s (getCohesion info) Continuous
+  | otherwise = setCohesion (Coh Continuous Continuous) info <$ do
+      whenJust ms \ s -> warning $ FixingCohesion s (getCohesion info) (Coh Continuous Continuous)
 
 ensureMixedPolarity :: LensModalPolarity a => Maybe String -> a -> ScopeM a
 ensureMixedPolarity ms info
