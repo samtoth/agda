@@ -1,4 +1,4 @@
-{-# OPTIONS --flat-split --rewriting #-}
+{-# OPTIONS --flat-split --without-K #-}
 module testMod where
 
 open import Agda.Builtin.Equality
@@ -14,7 +14,7 @@ data ⟨♭|_⟩ {@♭ 𝓤} (@♭ A : Set 𝓤) : Set 𝓤 where
         → ⟨♭| (A → B) ⟩ → ⟨♭| A ⟩ → ⟨♭| B ⟩
 ♭-map (mod♭ f) (mod♭ x) = mod♭ (f x)
 
-data ⟨♯|_⟩ {𝓤} (A : Set 𝓤) : Set 𝓤 where
+data ⟨♯|_⟩ {𝓤} (@♯ A : Set 𝓤) : Set 𝓤 where
   mod♯ : (@♯ a : A) → ⟨♯| A ⟩
 
 ♯-map : ∀ {𝓤 𝓥} {A : Set 𝓤} {B : Set 𝓥}
@@ -73,9 +73,9 @@ adj : ∀ {@♭ 𝓤 𝓥} {@♭ A : Set 𝓤} {B : Set 𝓥}
       → ⟨♯| (⟨♭| A ⟩ → B) ⟩ → (A → ⟨♯| B ⟩)
 adj (mod♯ f) a = mod♯ (f (mod♭ a))
 
--- adj' : ∀ {@♭ 𝓤 𝓥} {@♭ A : Set 𝓤} {@♭ B : @♭ A → Set 𝓥}
---        → ⟨♭| ((a : A) → ⟨♯| B {!!} ⟩) ⟩ → ⟨♭| ((@♭ a : A) → B a) ⟩
--- adj' (mod♭ f) = mod♭ (λ a → crispy (f a))
+adj' : ∀ {@♭ 𝓤 𝓥} {@♭ A : Set 𝓤} {@♭ B : @♭ A → Set 𝓥}
+       → ⟨♭| ((a : A) → ⟨♯| B a ⟩)⟩ → ⟨♭| ((@♭ a : A) → B a) ⟩
+adj' (mod♭ f) = mod♭ (λ b → crispy (f b))
 
 
 J-♭ : ∀ {@♭ 𝓤} {𝓥} {@♭ A : Set 𝓤} {@♭ a : A}
@@ -84,28 +84,11 @@ J-♭ : ∀ {@♭ 𝓤} {𝓥} {@♭ A : Set 𝓤} {@♭ a : A}
           → ∀ {@♭ b : A} (@♭ p : a ≡ b) → M b p
 J-♭ M mrfl refl = mrfl
 
--- In normal agda flat the following pattern matching
--- definition is rejected.
 J-crisp : ∀ {@♭ 𝓤} {@♭ 𝓥} {@♭ A : Set 𝓤} {@♭ a : A}
             (@♭ M : (@♭ b : A) → @♭ a ≡ b → Set 𝓥)
             → @♭ M a refl
             → ∀ {@♭ b : A} (@♭ p : a ≡ b) → M b p
-J-crisp M prfl refl = prfl
-
-
--- J-crisp-ind : ∀ (@♭ 𝓤 𝓥) → Set (lsuc (𝓤 ⊔ 𝓥))
--- J-crisp-ind 𝓤 𝓥 = ∀ {@♭ A : Set 𝓤} {@♭ a : A}
---                      (@♭ P : (@♭ b : A) → (@♭ p : a ≡ b) → Set 𝓥)
---                     → @♭ P a refl
---                     → {@♭ b : A} → (@♭ p : a ≡ b)
---                     → P b p
-
--- J-crisp-ind' : ∀ {@♭ 𝓤 𝓥} {@♭ A : Set 𝓤} {@♭ a : A}
---                  (@♭ P : (@♭ b : A) → (@♭ p : a ≡ b) → Set 𝓥)
---                 → @♭ P a refl
---                 → {@♭ b : A} → (@♭ p : a ≡ b)
---                 → P b p
--- J-crisp-ind' P prfl refl = prfl
+J-crisp M prfl = ε (adj' (mod♭ λ where refl → mod♯ prfl))
 
 flat-subst : {@♭ A : Set} {P : A → Set} → (@♭ x y : A) (@♭ p : x ≡ y)
              → P x → P y
@@ -126,13 +109,14 @@ unmod♭≡ : ∀ {@♭ 𝓤} {@♭ A : Set 𝓤} {@♭ a b : A}
         → ⟨♭| a ≡ b ⟩
 unmod♭≡ refl = mod♭ refl
 
--- This def is also rejected by normal agda-flat
 sec : ∀ {@♭ 𝓤} {@♭ A : Set 𝓤}
       → {@♭ a b : A}
       → ∀ (@♭ p : a ≡ b) → unmod♭≡ (mod♭≡ (mod♭ p)) ≡ mod♭ p
-sec refl = refl
+sec = ε (adj' (mod♭ (λ where refl → mod♯ refl)))
 
-
+data _+_ (A B : Set) : Set where
+  inl : A → A + B
+  inr : B → A + B
 
 ♭⊣♯→ : ∀ {@♭ 𝓤 𝓥} {@♭ A : Set 𝓤} {@♭ B : Set 𝓥}
       → ⟨♭| (⟨♭| A ⟩ → B)⟩ → ⟨♭| (A → ⟨♯| B ⟩) ⟩
@@ -158,13 +142,17 @@ crispy-op (modOp a) = a
 op←♭ : ∀ {@♭ 𝓤} {@♭ A : Set 𝓤} → @♭ A → ⟨Op| A ⟩
 op←♭ a = modOp a
 
-
 map-op : ∀ {@♭ 𝓤 𝓥} {@♭ A : Set 𝓤} {@♭ B : Set 𝓥}
          → ⟨Op| (A → B) ⟩ → ⟨Op| A ⟩ → ⟨Op| B ⟩
 map-op (modOp f) (modOp a) = modOp (f a)
 
-opop : ∀ {@♭ 𝓤} {@♭ A : Set 𝓤} → @♭ ⟨Op| ⟨Op| A ⟩ ⟩ → A
-opop {A = A} (modOp a) = crispy-op a
+♭opop : ∀ {@♭ 𝓤} {@♭ A : Set 𝓤} → @♭ ⟨Op| ⟨Op| A ⟩ ⟩ → A
+♭opop {A = A} (modOp a) = crispy-op a
+
+-- this is the main obstacle. We want to pattern match on @op ⟨Op| A ⟩
+-- but cannot
+opop : ∀ {@♭ 𝓤} {@♭ A : Set 𝓤} → ⟨Op| ⟨Op| A ⟩ ⟩ → A
+opop (modOp op) = {!op!}
 
 opop⁻¹ : ∀ {@♭ 𝓤} {@♭ A : Set 𝓤} → @♭ A → ⟨Op| ⟨Op| A ⟩ ⟩
 opop⁻¹ {A = A} a = modOp (modOp a)
@@ -173,10 +161,8 @@ op⊣op→ : ∀ {@♭ 𝓤 𝓥} {@♭ A : Set 𝓤} {@♭ B : Set 𝓥}
         → ⟨♭| (⟨Op| A ⟩ → B) ⟩ → ⟨♭| (A → ⟨Op| B ⟩)⟩
 op⊣op→ (mod♭ f) = mod♭ (λ a → map-op (modOp f) (modOp (modOp a)))
 
--- I couldn't do it without the needing @♭ on the rhs
--- but maybe there is a way
 op⊣op← : ∀ {@♭ 𝓤 𝓥} {@♭ A : Set 𝓤} {@♭ B : Set 𝓥}
-         → ⟨♭| (A → ⟨Op| B ⟩)⟩ → ⟨♭| (@♭ ⟨Op| A ⟩ → B) ⟩
+         → ⟨♭| (A → ⟨Op| B ⟩)⟩ → ⟨♭| (⟨Op| A ⟩ → B) ⟩
 op⊣op← (mod♭ f) = mod♭ (λ x → opop (map-op (modOp f) x))
 
 
@@ -192,31 +178,3 @@ record _×_ {𝓤 𝓥} (A : Set 𝓤) (B : Set 𝓥) : Set (𝓤 ⊔ 𝓥) wher
 
 cocontra : ∀ {@♭ 𝓤} {@♭ A : Set 𝓤} → @♭ A → ⟨Op| A ⟩ × A
 cocontra a = (modOp a , a)
-
--- postulate
---   ⟨Op|_⟩ : ∀ {@♭ 𝓤} (@♭ A : Set 𝓤) → Set 𝓤
-
---   ♭op→ : ∀ {@♭ 𝓤} {@♭ A : Set 𝓤} → @♭ ⟨Op| A ⟩ → ⟨♭| A ⟩
---   ♭op← : ∀ {@♭ 𝓤} {@♭ A : Set 𝓤} → @♭ A → ⟨♭| ⟨Op| A ⟩ ⟩
-
---   ♯op→ : ∀ {@♭ 𝓤} {@♭ A : Set 𝓤} → @♯ ⟨Op| A ⟩ → ⟨♯| A ⟩
---   ♯op← : ∀ {@♭ 𝓤} {@♭ A : Set 𝓤} → ⟨♯| A ⟩ → ⟨♯| ⟨Op| A ⟩ ⟩
-
---   opop : ∀ {@♭ 𝓤} {@♭ A : Set 𝓤} → ⟨Op| ⟨Op| A ⟩ ⟩ ≡ A
-
--- {-# BUILTIN REWRITE _≡_ #-}
-
--- {-# REWRITE opop #-}
-
--- elim-op♭ : ∀ {@♭ 𝓤 𝓥} {@♭ A : Set 𝓤} {@♭ B : @♭ A → Set 𝓥}
---            → ((@♭ x : A) → B x) → ((@♭ x : ⟨Op| A ⟩) → B (ε (♭op→ x)))
--- elim-op♭ {A = A} f x = f (ε (♭op→ x))
-
--- op-map : ∀ {@♭ 𝓤 𝓥} {@♭ A : Set 𝓤} {@♭ B : Set 𝓥}
---          → ⟨Op| (A → B) ⟩ → ⟨Op| A ⟩ → ⟨Op| B ⟩
--- op-map = {!!} -- elim-op♭ {A = ⟨Op| _ ⟩} λ f → elim-op♭ (λ x → ε (♭op→ (f x)))
-
--- op⊣op : ∀ {@♭ 𝓤 𝓥} {@♭ A : Set 𝓤} {@♭ B : Set 𝓥}
---         → @♭ (⟨Op| A ⟩ → B) → ⟨♭| (A → ⟨Op| B ⟩) ⟩
--- op⊣op f = mod♭ (λ x → {!op-map !})
-
