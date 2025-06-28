@@ -169,6 +169,7 @@ import Agda.Utils.Impossible
     'INLINE'                  { TokKeyword KwINLINE $$ }
     'NOINLINE'                { TokKeyword KwNOINLINE $$ }
     'MEASURE'                 { TokKeyword KwMEASURE $$ }
+    'MODALITY'                { TokKeyword KwMODALITY $$ }
     'NO_TERMINATION_CHECK'    { TokKeyword KwNO_TERMINATION_CHECK $$ }
     'NO_POSITIVITY_CHECK'     { TokKeyword KwNO_POSITIVITY_CHECK $$ }
     'NO_UNIVERSE_CHECK'       { TokKeyword KwNO_UNIVERSE_CHECK $$ }
@@ -304,6 +305,7 @@ Token
     | 'INJECTIVE_FOR_INFERENCE' { TokKeyword KwINJECTIVE_FOR_INFERENCE $1 }
     | 'INLINE'                  { TokKeyword KwINLINE $1 }
     | 'MEASURE'                 { TokKeyword KwMEASURE $1 }
+    | 'MODALITY'                { TokKeyword KwMODALITY $1 }
     | 'NOINLINE'                { TokKeyword KwNOINLINE $1 }
     | 'NO_POSITIVITY_CHECK'     { TokKeyword KwNO_POSITIVITY_CHECK $1 }
     | 'NO_TERMINATION_CHECK'    { TokKeyword KwNO_TERMINATION_CHECK $1 }
@@ -1612,6 +1614,7 @@ DeclarationPragma
   | NoPositivityCheckPragma  { $1 }
   | NoUniverseCheckPragma    { $1 }
   | PolarityPragma           { $1 }
+  | ModalityPragma           { $1 }
   | OverlapPragma            { $1 }
   | OptionsPragma            { $1 }
     -- Andreas, 2014-03-06
@@ -1749,6 +1752,11 @@ PolarityPragma
   : '{-#' 'POLARITY' PragmaName Polarities '#-}'
     { let occs = reverse $4 in
       PolarityPragma (getRange ($1,$2,$3,occs,$5)) $3 occs }
+
+ModalityPragma :: { Pragma }
+ModalityPragma
+  : '{-#' 'MODALITY' PragmaQName '#-}'
+    { ModalityPragma (getRange ($1,$2,$3,$4)) $3 }
 
 WarningOnUsagePragma :: { Pragma }
 WarningOnUsagePragma

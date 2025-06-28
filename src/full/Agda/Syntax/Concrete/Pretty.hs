@@ -593,6 +593,7 @@ instance Pretty Pragma where
       hsep ("POLARITY" : pretty q : map pretty occs)
     pretty (NoUniverseCheckPragma _) = "NO_UNIVERSE_CHECK"
     pretty (OverlapPragma _ x m) = hsep [pretty m, pretty x]
+    pretty (ModalityPragma _ i) = hsep $ ["MODALITY", pretty i]
 
 instance Pretty NotationPart where
     pretty (IdPart x) = text $ rangedThing x

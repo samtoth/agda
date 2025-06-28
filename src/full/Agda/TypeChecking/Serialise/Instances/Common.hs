@@ -523,6 +523,9 @@ instance EmbPrj a => EmbPrj (HasEta' a) where
     valu [a] = valuN NoEta a
     valu _   = malformed
 
+
+instance EmbPrj IsModality where
+
 instance EmbPrj PatternOrCopattern
 instance EmbPrj OverlapMode
 

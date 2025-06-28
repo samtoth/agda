@@ -92,6 +92,7 @@ import Agda.Syntax.Common.Pretty (prettyShow)
 import Agda.Utils.Singleton
 import Agda.Utils.Size
 import Agda.Utils.Tuple
+import Agda.Utils.Boolean (toBool)
 
 import Agda.Utils.Impossible
 import Agda.TypeChecking.Free (freeIn)
@@ -1323,8 +1324,6 @@ checkLHS mf = updateModality checkLHS_ where
       --
       -- Thus, no checking of (usableQuantity info) here.
 
-      unlessM (splittableCohesion info) $
-        addContext delta1 $ softTypeError $ SplitOnUnusableCohesion dom
 
       unless (splittablePolarity (getModalPolarity info)) $
         addContext delta1 $ softTypeError $ SplitOnUnusablePolarity dom
@@ -1343,6 +1342,10 @@ checkLHS mf = updateModality checkLHS_ where
       let isRec = case dr of
             IsData{}   -> False
             IsRecord{} -> True
+
+      unlessM (isModSplitDatatype d) $
+        unlessM (splittableCohesion info) $
+          addContext delta1 $ softTypeError $ SplitOnUnusableCohesion dom
 
       checkMatchingAllowed d dr  -- No splitting on coinductive constructors.
 
@@ -1572,6 +1575,13 @@ checkLHS mf = updateModality checkLHS_ where
             ]
           return st'
 
+isModSplitDatatype :: (MonadTCError m, HasConstInfo m)
+  => QName        -- ^ The name of the data or record type the constructor belongs to.
+  -> m Bool
+isModSplitDatatype d
+  = theDef <$> getConstInfo d >>= \case
+      DatatypeDefn d -> return (toBool $ _dataIsModality d)
+      _          -> return False
 
 -- | Ensures that we are not performing pattern matching on coinductive constructors.
 

@@ -646,6 +646,8 @@ data Pragma
   | NoPositivityCheckPragma     Range
     -- ^ Applies to the following data/record type or mutual block.
   | PolarityPragma              Range Name [Ranged Occurrence]
+  | ModalityPragma              Range QName
+    -- ^ Mark an inductive definition as a matchable under any modality
   | NoUniverseCheckPragma       Range
     -- ^ Applies to the following data/record type.
   | NotProjectionLikePragma     Range QName
@@ -1072,6 +1074,7 @@ instance HasRange Pragma where
   getRange (NoUniverseCheckPragma r)         = r
   getRange (NotProjectionLikePragma r _)     = r
   getRange (OverlapPragma r _ _)             = r
+  getRange (ModalityPragma r _)              = r
 
 instance HasRange AsName where
   getRange a = getRange (asRange a, asName a)
@@ -1286,6 +1289,7 @@ instance KillRange Pragma where
   killRange (NoUniverseCheckPragma _)         = NoUniverseCheckPragma noRange
   killRange (NotProjectionLikePragma _ q)     = NotProjectionLikePragma noRange q
   killRange (OverlapPragma _ q i)             = OverlapPragma noRange q i
+  killRange (ModalityPragma _ q)              = ModalityPragma noRange q
 
 instance KillRange RHS where
   killRange AbsurdRHS = AbsurdRHS
@@ -1436,6 +1440,7 @@ instance NFData Pragma where
   rnf (NoUniverseCheckPragma _)         = ()
   rnf (NotProjectionLikePragma _ q)     = rnf q
   rnf (OverlapPragma _ q i)             = rnf q `seq` rnf i
+  rnf (ModalityPragma _ q)              = rnf q
 
 -- | Ranges are not forced.
 

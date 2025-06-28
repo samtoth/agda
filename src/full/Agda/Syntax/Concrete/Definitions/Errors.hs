@@ -306,6 +306,7 @@ unsafePragma p =
     WarningOnImport{}          -> empty
     WarningOnUsage{}           -> empty
     OverlapPragma{}            -> empty
+    ModalityPragma{}           -> empty
   where
     r = getRange p
 

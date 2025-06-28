@@ -102,6 +102,7 @@ tokens :-
 <pragma_>   "NON_TERMINATING"          { keyword KwNON_TERMINATING }
 <pragma_>   "OPTIONS"                  { keyword KwOPTIONS }
 <pragma_>   "POLARITY"                 { keyword KwPOLARITY }
+<pragma_>   "MODALITY"                 { keyword KwMODALITY }
 <pragma_>   "OVERLAPPABLE"             { keyword KwOVERLAPPABLE }
 <pragma_>   "OVERLAPPING"              { keyword KwOVERLAPPING }
 <pragma_>   "OVERLAPS"                 { keyword KwOVERLAPS }
