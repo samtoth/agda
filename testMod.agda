@@ -7,6 +7,10 @@ open import Agda.Primitive
 data ⟨♭|_⟩ {@♭ 𝓤} (@♭ A : Set 𝓤) : Set 𝓤 where
   mod♭ : (@♭ a : A) → ⟨♭| A ⟩
 
+-- The modality pragma means that any modality can split
+-- on this type
+{-# MODALITY ⟨♭|_⟩ #-}
+
 ε : ∀ {@♭ 𝓤} {@♭ A : Set 𝓤} → ⟨♭| A ⟩ → A
 ε (mod♭ a) = a
 
@@ -16,6 +20,8 @@ data ⟨♭|_⟩ {@♭ 𝓤} (@♭ A : Set 𝓤) : Set 𝓤 where
 
 data ⟨♯|_⟩ {𝓤} (@♯ A : Set 𝓤) : Set 𝓤 where
   mod♯ : (@♯ a : A) → ⟨♯| A ⟩
+
+{-# MODALITY ⟨♯|_⟩ #-}
 
 ♯-map : ∀ {𝓤 𝓥} {A : Set 𝓤} {B : Set 𝓥}
         → ⟨♯| (A → B) ⟩ → ⟨♯| A ⟩ → ⟨♯| B ⟩
@@ -58,10 +64,10 @@ comul (mod♯ a) = mod♯ (mod♯ a)
 ♭-eat-♯' (mod♭ a) = mod♭ (mod♯ a)
 
 ♯-eat-♭ : ∀ {@♭ 𝓤} {@♭ A : Set 𝓤} → ⟨♯| ⟨♭| A ⟩ ⟩ → ⟨♯| A ⟩
-♯-eat-♭ (mod♯ a) = mod♯ (ε a)
+♯-eat-♭ (mod♯ (mod♭ a)) = mod♯ a
 
 ♯-eat-♭' : ∀ {@♭ 𝓤} {@♭ A : Set 𝓤} → ⟨♯| A ⟩ → ⟨♯| ⟨♭| A ⟩ ⟩
-♯-eat-♭' m = mod♯ (mod♭ (crispy m))
+♯-eat-♭' (mod♯ a) = mod♯ (mod♭ a)
 
 ♯←♭ : ∀ {@♭ 𝓤} {@♭ A : Set 𝓤} → ⟨♭| A ⟩ → ⟨♯| A ⟩
 ♯←♭ x = η (ε x)
@@ -76,7 +82,6 @@ adj (mod♯ f) a = mod♯ (f (mod♭ a))
 adj' : ∀ {@♭ 𝓤 𝓥} {@♭ A : Set 𝓤} {@♭ B : @♭ A → Set 𝓥}
        → ⟨♭| ((a : A) → ⟨♯| B a ⟩)⟩ → ⟨♭| ((@♭ a : A) → B a) ⟩
 adj' (mod♭ f) = mod♭ (λ b → crispy (f b))
-
 
 J-♭ : ∀ {@♭ 𝓤} {𝓥} {@♭ A : Set 𝓤} {@♭ a : A}
             (M : (@♭ b : A) → a ≡ b → Set 𝓥)
@@ -129,6 +134,7 @@ data _+_ (A B : Set) : Set where
 data ⟨Op|_⟩ {@♭ 𝓤} (@♭ A : Set 𝓤) : Set 𝓤 where
   modOp : (@op a : A) → ⟨Op| A ⟩
 
+{-# MODALITY ⟨Op|_⟩ #-}
 
 ♭op→ : ∀ {@♭ 𝓤} {@♭ A : Set 𝓤} → @♭ ⟨Op| A ⟩ → ⟨♭| A ⟩
 ♭op→ (modOp a) = mod♭ a
@@ -142,28 +148,26 @@ crispy-op (modOp a) = a
 op←♭ : ∀ {@♭ 𝓤} {@♭ A : Set 𝓤} → @♭ A → ⟨Op| A ⟩
 op←♭ a = modOp a
 
-map-op : ∀ {@♭ 𝓤 𝓥} {@♭ A : Set 𝓤} {@♭ B : Set 𝓥}
+op-map : ∀ {@♭ 𝓤 𝓥} {@♭ A : Set 𝓤} {@♭ B : Set 𝓥}
          → ⟨Op| (A → B) ⟩ → ⟨Op| A ⟩ → ⟨Op| B ⟩
-map-op (modOp f) (modOp a) = modOp (f a)
+op-map (modOp f) (modOp a) = modOp (f a)
 
 ♭opop : ∀ {@♭ 𝓤} {@♭ A : Set 𝓤} → @♭ ⟨Op| ⟨Op| A ⟩ ⟩ → A
 ♭opop {A = A} (modOp a) = crispy-op a
 
--- this is the main obstacle. We want to pattern match on @op ⟨Op| A ⟩
--- but cannot
-opop : ∀ {@♭ 𝓤} {@♭ A : Set 𝓤} → ⟨Op| ⟨Op| A ⟩ ⟩ → A
-opop (modOp op) = {!op!}
+opop← : ∀ {@♭ 𝓤} {@♭ A : Set 𝓤} → ⟨Op| ⟨Op| A ⟩ ⟩ → A
+opop← (modOp (modOp a)) = a
 
-opop⁻¹ : ∀ {@♭ 𝓤} {@♭ A : Set 𝓤} → @♭ A → ⟨Op| ⟨Op| A ⟩ ⟩
-opop⁻¹ {A = A} a = modOp (modOp a)
+opop→ : ∀ {@♭ 𝓤} {@♭ A : Set 𝓤} → A → ⟨Op| ⟨Op| A ⟩ ⟩
+opop→ {A = A} a = modOp (modOp a)
 
 op⊣op→ : ∀ {@♭ 𝓤 𝓥} {@♭ A : Set 𝓤} {@♭ B : Set 𝓥}
         → ⟨♭| (⟨Op| A ⟩ → B) ⟩ → ⟨♭| (A → ⟨Op| B ⟩)⟩
-op⊣op→ (mod♭ f) = mod♭ (λ a → map-op (modOp f) (modOp (modOp a)))
+op⊣op→ (mod♭ f) = mod♭ (λ a → op-map (modOp f) (opop→ a))
 
 op⊣op← : ∀ {@♭ 𝓤 𝓥} {@♭ A : Set 𝓤} {@♭ B : Set 𝓥}
          → ⟨♭| (A → ⟨Op| B ⟩)⟩ → ⟨♭| (⟨Op| A ⟩ → B) ⟩
-op⊣op← (mod♭ f) = mod♭ (λ x → opop (map-op (modOp f) x))
+op⊣op← (mod♭ f) = mod♭ λ x → opop← (op-map (modOp f) x)
 
 
 elim-op♭ : ∀ {@♭ 𝓤 𝓥} {@♭ A : Set 𝓤} {@♭ B : @♭ A → Set 𝓥}

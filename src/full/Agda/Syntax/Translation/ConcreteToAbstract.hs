@@ -2791,7 +2791,7 @@ ensureNotLinear s info = do
       -- return $ setQuantity q' info
 
 ensureContinuous :: LensCohesion a => Maybe String -> a -> ScopeM a
-ensureContinuous ms info
+ensureContinuous ms info 
   | isContinuous info = return info
   | otherwise = setCohesion (Coh Continuous Continuous) info <$ do
       whenJust ms \ s -> warning $ FixingCohesion s (getCohesion info) (Coh Continuous Continuous)
@@ -2921,6 +2921,10 @@ instance ToAbstract C.Pragma where
   toAbstract (C.EtaPragma _ x) = do
     map A.EtaPragma . maybeToList <$> do
       scopeCheckDef (PragmaExpectsDefinedSymbol "ETA") x
+
+  toAbstract (C.ModalityPragma _ x) = do
+    map A.ModalityPragma . maybeToList <$> do
+      scopeCheckDef (PragmaExpectsDefinedSymbol "MODALITY") x
 
   toAbstract pragma@(C.DisplayPragma _ lhs rhs) = do
     maybeToList <$> do
@@ -3186,6 +3190,7 @@ checkNoTerminationPragma b ds =
       C.InlinePragma _ _ _          -> []
       C.ImpossiblePragma _ _        -> []
       C.EtaPragma _ _               -> []
+      C.ModalityPragma _ _          -> []
       C.WarningOnUsage _ _ _        -> []
       C.WarningOnImport _ _         -> []
       C.InjectivePragma _ _         -> []

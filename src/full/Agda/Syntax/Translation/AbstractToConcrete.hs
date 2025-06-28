@@ -1403,6 +1403,7 @@ instance ToConcrete RangeAndPragma where
     A.EtaPragma x    -> C.EtaPragma    r <$> toConcrete x
     A.DisplayPragma f ps rhs ->
       C.DisplayPragma r <$> toConcrete (A.DefP (PatRange noRange) (unambiguous f) ps) <*> toConcrete rhs
+    A.ModalityPragma x -> C.ModalityPragma r <$> toConcrete x
 
 -- Left hand sides --------------------------------------------------------
 

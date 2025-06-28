@@ -40,6 +40,7 @@ data Keyword
         | KwSyntax
         | KwPatternSyn | KwTactic | KwCATCHALL
         | KwVariable
+        | KwMODALITY
         | KwNO_POSITIVITY_CHECK | KwPOLARITY
         | KwNO_UNIVERSE_CHECK
     deriving (Eq, Show)

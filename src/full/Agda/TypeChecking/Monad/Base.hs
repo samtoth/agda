@@ -2868,6 +2868,8 @@ data DatatypeData = DatatypeData
       --   Empty if not recursive.
       --   @Nothing@ if not yet computed (by positivity checker).
   , _dataAbstr          :: IsAbstract
+  , _dataIsModality     :: IsModality
+     -- ^ Is this datatype marked as a modality
   , _dataPathCons       :: [QName]
       -- ^ Path constructor names (subset of @dataCons@).
   , _dataTranspIx       :: Maybe QName
@@ -2884,6 +2886,7 @@ pattern Datatype
   -> Sort
   -> Maybe [QName]
   -> IsAbstract
+  -> IsModality
   -> [QName]
   -> Maybe QName
   -> Maybe QName
@@ -2897,6 +2900,7 @@ pattern Datatype
   , dataSort
   , dataMutual
   , dataAbstr
+  , dataIsModality
   , dataPathCons
   , dataTranspIx
   , dataTransp
@@ -2908,6 +2912,7 @@ pattern Datatype
     dataSort
     dataMutual
     dataAbstr
+    dataIsModality
     dataPathCons
     dataTranspIx
     dataTransp
@@ -3142,6 +3147,11 @@ lensRecord f = \case
   RecordDefn d -> RecordDefn <$> f d
   _ -> __IMPOSSIBLE__
 
+lensData :: Lens' Defn DatatypeData
+lensData f = \case
+  DatatypeDefn d -> DatatypeDefn <$> f d
+  _ -> __IMPOSSIBLE__
+
 -- Lenses for Record
 
 lensRecTel :: Lens' RecordData Telescope
@@ -3151,6 +3161,12 @@ lensRecTel f r =
 lensRecEta :: Lens' RecordData EtaEquality
 lensRecEta f r =
   f (_recEtaEquality' r) <&> \ eta -> r { _recEtaEquality' = eta }
+
+-- Lenses for Data
+
+lensDataIsModality :: Lens' DatatypeData IsModality
+lensDataIsModality f r =
+  f (_dataIsModality r) <&> \ m -> r { _dataIsModality = m}
 
 -- Pretty printing definitions
 
@@ -3233,7 +3249,8 @@ instance Pretty DatatypeData where
       dataCons
       dataSort
       dataMutual
-      _dataAbstr
+      dataAbstr
+      dataIsModality
       _dataPathCons
       _dataTranspIx
       _dataTransp
@@ -3246,6 +3263,7 @@ instance Pretty DatatypeData where
       , "dataSort       =" <?> pretty dataSort
       , "dataMutual     =" <?> pshow dataMutual
       , "dataAbstr      =" <?> pshow dataAbstr
+      , "dataIsModality =" <?> pshow dataIsModality
       ] <?> "}"
 
 instance Pretty RecordData where
@@ -6610,7 +6628,7 @@ instance KillRange Defn where
       AbstractDefn{} -> __IMPOSSIBLE__ -- only returned by 'getConstInfo'!
       Function a b c d e f g h i j k l m n ->
         killRangeN Function a b c d e f g h i j k l m n
-      Datatype a b c d e f g h i j   -> killRangeN Datatype a b c d e f g h i j
+      Datatype a b c d e f g h i j k   -> killRangeN Datatype a b c d e f g h i j k
       Record a b c d e f g h i j k l m -> killRangeN Record a b c d e f g h i j k l m
       Constructor a b c d e f g h i j k -> killRangeN Constructor a b c d e f g h i j k
       Primitive a b c d e f          -> killRangeN Primitive a b c d e f

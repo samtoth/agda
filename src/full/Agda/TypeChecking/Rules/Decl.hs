@@ -50,6 +50,7 @@ import Agda.TypeChecking.ProjectionLike
 import Agda.TypeChecking.Unquote
 import Agda.TypeChecking.Records
 import Agda.TypeChecking.RecordPatterns
+import Agda.TypeChecking.Datatypes
 import Agda.TypeChecking.Reduce
 import Agda.TypeChecking.Rewriting
 import Agda.TypeChecking.SizedTypes.Solve
@@ -884,6 +885,10 @@ checkPragma r p = do
               | otherwise -> modifyRecEta q $ const $ Specified YesEta
           where
             noRecord = uselessPragma "ETA pragma is only applicable to coinductive records"
+
+        A.ModalityPragma q -> isDatatype q >>= \case
+            False -> uselessPragma "MODALITY pragma is only applicable to data declarations"
+            True -> modifyDataMod q $ const YesModality
 
 -- | Type check a bunch of mutual inductive recursive definitions.
 --
