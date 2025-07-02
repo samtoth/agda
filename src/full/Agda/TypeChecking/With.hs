@@ -489,7 +489,7 @@ stripWithClausePatterns cxtNames parent f t delta qs npars perm ps = do
 
         -- We can safely strip dots from variables. The unifier will put them back when required.
         VarP _ x | A.DotP _ u <- namedArg p
-                 , A.Var y <- unScope u -> do
+                 , A.Var y c <- unScope u -> do
           (setVarArgInfo x (setNamedArg p $ A.VarP $ A.mkBindName y) :) <$>
             recurse (var (dbPatVarIndex x))
 
@@ -505,7 +505,7 @@ stripWithClausePatterns cxtNames parent f t delta qs npars perm ps = do
           (a, _) <- mustBePi t
           tell [ProblemEq (namedArg p) v a]
           case v of
-            Var x [] | PatOVar{} <- patOrigin i
+            Var x _ [] | PatOVar{} <- patOrigin i
                -> (p :) <$> recurse (var x)
             _  -> (makeWildP p :) <$> recurse v
 
@@ -793,5 +793,5 @@ patsToElims = map $ toElim . fmap namedThing
 
     toVarOrDot :: DeBruijnPattern -> DisplayTerm
     toVarOrDot p = case patternToTerm p of
-      Var i [] -> DTerm $ var i
+      Var i _ [] -> DTerm $ var i
       t        -> DDot t

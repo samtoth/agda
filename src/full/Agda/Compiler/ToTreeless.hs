@@ -520,7 +520,7 @@ recConFromProj q = do
 substTerm :: I.Term -> CC C.TTerm
 substTerm term = normaliseStatic term >>= \ term ->
   case I.unSpine $ etaContractErased term of
-    I.Var ind es -> do
+    I.Var ind _ es -> do
       ind' <- asks (lookupIndex ind . ccCxt)
       let args = fromMaybe __IMPOSSIBLE__ $ I.allApplyElims es
       C.mkTApp (C.TVar ind') <$> substArgs args

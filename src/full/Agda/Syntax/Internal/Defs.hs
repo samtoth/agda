@@ -59,7 +59,7 @@ instance GetDefs Term where
     Def d vs   -> doDef d >> getDefs vs
     Con _ _ vs -> getDefs vs
     Lit l      -> return ()
-    Var i vs   -> getDefs vs
+    Var i c vs   -> getDefs vs
     Lam _ v    -> getDefs v
     Pi a b     -> getDefs a >> getDefs b
     Sort s     -> getDefs s

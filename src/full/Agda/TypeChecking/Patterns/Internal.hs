@@ -35,7 +35,7 @@ instance (DeBruijn (Pattern' a)) => TermToPattern Term (Pattern' a) where
   termToPattern t = (reduce >=> constructorForm) t >>= \case
     -- Constructors.
     Con c _ args -> ConP c noConPatternInfo . map (fmap unnamed) <$> termToPattern (fromMaybe __IMPOSSIBLE__ $ allApplyElims args)
-    Var i []    -> return $ deBruijnVar i
+    Var i _ []  -> return $ deBruijnVar i
     Lit l       -> return $ litP l
     t           -> return $ dotP t
 

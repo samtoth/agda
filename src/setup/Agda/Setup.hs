@@ -82,6 +82,7 @@ getAgdaAppDir = do
     -- System-specific command to build the path to ~/.agda (Unix) or %APPDATA%\agda (Win)
     agdaDir = do
       legacyAgdaDir <- getAppUserDataDirectory "agda"
+      putStrLn "(Sam): Agda dir before"
       doesDirectoryExist legacyAgdaDir >>= \case
         True  -> return legacyAgdaDir
         False -> getXdgDirectory XdgConfig "agda"

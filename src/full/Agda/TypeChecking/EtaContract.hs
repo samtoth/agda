@@ -25,7 +25,7 @@ data BinAppView = App Term (Arg Term)
 
 binAppView :: Term -> BinAppView
 binAppView t = case t of
-  Var i xs   -> appE (Var i) xs
+  Var i c xs   -> appE (Var i c) xs
   Def c xs   -> appE (Def c) xs
   -- Andreas, 2013-09-17: do not eta-contract when body is (record) constructor
   -- like in \ x -> s , x!  (See interaction/DoNotEtaContractFunIntoRecord)
@@ -112,7 +112,7 @@ etaLam i x b = do
            else fallback
       _ -> fallback
   where
-    isVar0 _ (Var 0 [])               = True
+    isVar0 _ (Var 0 _ [])               = True
     -- Andreas, 2016-01-08 If --type-in-type, all levels are equal.
     -- Jesper, 2019-10-15 issue #3073
     -- Contracting level arguments is not sound unless the domain type

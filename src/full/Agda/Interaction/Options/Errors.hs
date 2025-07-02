@@ -295,6 +295,7 @@ data ErrorName
   | VariableIsIrrelevant_
   | VariableIsOfUnusableCohesion_
   | VariableIsOfUnusablePolarity_
+  | VariableProjectionIsIllTyped_
   | WithClausePatternMismatch_
   | WithOnFreeVariable_
   | WrongAnnotationInLambda_

@@ -59,7 +59,7 @@ matchLeq (a :=< b) (c :=< d)
       where
         go _ [] = IdS
         go y ren0@((y', x) : ren)
-          | y == y'   = Var x [] :# go (y + 1) ren
+          | y == y'   = Var x Nothing [] :# go (y + 1) ren
           | otherwise = strengthenS' impossible 1 $ go (y + 1) ren0
 
 -- | Turn a level constraint into a list of inequalities between

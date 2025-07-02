@@ -436,12 +436,12 @@ computeGeneralization genRecMeta nameMap allmetas = postponeInstanceConstraints 
   cxtTel <- getContextTelescope
   let solve m field = do
         reportSDoc "tc.generalize" 30 $ "solving generalized meta" <+>
-          prettyTCM m <+> ":=" <+> prettyTCM (Var 0 [Proj ProjSystem field])
+          prettyTCM m <+> ":=" <+> prettyTCM (Var 0 Nothing [Proj ProjSystem field])
         -- m should not be instantiated, but if we don't check constraints
         -- properly it could be (#3666 and #3667). Fail hard instead of
         -- generating bogus types.
         whenM (isInstantiatedMeta m) __IMPOSSIBLE__
-        assignTerm' m (telToArgs cxtTel) $ Var 0 [Proj ProjSystem field]
+        assignTerm' m (telToArgs cxtTel) $ Var 0 Nothing [Proj ProjSystem field]
   zipWithM_ solve sortedMetas genRecFields
 
   -- Record the named variables in the telescope
@@ -644,7 +644,7 @@ pruneUnsolvedMetas genRecName genRecCon genTel genRecFields interactionPoints is
         --   Γ Θγ Δσ ⊢ lift i σ : Γ (r : GenTel) Δ
         let ρ  = liftS i σ
             -- We also need ρ⁻¹, which is a lot easier to construct.
-            ρ' = liftS i $ [ Var 0 [Proj ProjSystem fld] | fld <- reverse $ take (size _Θ) $ genRecFields ] ++# raiseS 1
+            ρ' = liftS i $ [ Var 0 Nothing [Proj ProjSystem fld] | fld <- reverse $ take (size _Θ) $ genRecFields ] ++# raiseS 1
 
         reportSDoc "tc.generalize.prune" 30 $ nest 2 $ vcat
           [ "Γ   =" <+> pretty _Γ
@@ -774,7 +774,7 @@ pruneUnsolvedMetas genRecName genRecCon genTel genRecFields interactionPoints is
             = Set.singleton y
           projs _ = Set.empty
           early = flip foldTerm u \case
-                  Var _ es   -> foldMap projs es
+                  Var _ _ es   -> foldMap projs es
                   Def _ es   -> foldMap projs es
                   MetaV _ es -> foldMap projs es
                   _          -> Set.empty
@@ -1017,7 +1017,7 @@ fillInGenRecordDetails name con fields recTy fieldTel = do
           mkFieldTypes flds (absApp ftel proj)
         where
           s = mkPiSort (defaultDom recTy) (Abs "r" $ unDom ty)
-          proj = Var 0 [Proj ProjSystem fld]
+          proj = Var 0 Nothing [Proj ProjSystem fld]
       mkFieldTypes _ _ = __IMPOSSIBLE__
   let fieldTypes = mkFieldTypes fields (raise 1 fieldTel)
   reportSDoc "tc.generalize" 40 $ text "Field types:" <+> inTopContext (nest 2 $ vcat $ map prettyTCM fieldTypes)

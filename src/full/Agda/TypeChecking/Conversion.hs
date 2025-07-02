@@ -100,7 +100,7 @@ tryConversion' m = tryMaybe $ noConstraints m
 sameVars :: Elims -> Elims -> Bool
 sameVars xs ys = and $ zipWith same xs ys
     where
-        same (Apply (Arg _ (Var n []))) (Apply (Arg _ (Var m []))) = n == m
+        same (Apply (Arg _ (Var n c []))) (Apply (Arg _ (Var m c' []))) = n == m && c == c'
         same _ _ = False
 
 -- | @intersectVars us vs@ checks whether all relevant elements in @us@ and @vs@
@@ -110,7 +110,7 @@ intersectVars :: Elims -> Elims -> Maybe [Bool]
 intersectVars = zipWithM areVars where
     -- ignore irrelevant args
     areVars (Apply u) v | isIrrelevant u = Just False -- do not prune
-    areVars (Apply (Arg _ (Var n []))) (Apply (Arg _ (Var m []))) = Just $ n /= m -- prune different vars
+    areVars (Apply (Arg _ (Var n c []))) (Apply (Arg _ (Var m c' []))) = Just $ n /= m || c /= c' -- prune different vars
     areVars _ _                                   = Nothing
 
 -- | @guardPointerEquality x y s m@ behaves as @m@ if @x@ and @y@ are equal as pointers,
@@ -618,10 +618,10 @@ compareAtom cmp t m n =
               (equalSort s1 s2)
 
           (Lit l1, Lit l2) | l1 == l2 -> return ()
-          (Var i es, Var i' es') | i == i' -> do
+          (Var i c es, Var i' c' es') | i == i' && c == c' -> do
               a <- typeOfBV i
               -- Variables are invariant in their arguments
-              compareElims [] [] a (var i) es es'
+              compareElims [] [] a (varC i c) es es'
 
           -- The case of definition application:
           (Def f es, Def f' es') -> do
@@ -889,9 +889,9 @@ antiUnify pid a u v = do
       reduce (unEl a) >>= \case
         Pi a b -> Lam i . (mkAbs (absName u)) <$> addContext a (antiUnify pid (absBody b) (absBody u) (absBody v))
         _      -> fallback
-    (Var i us, Var j vs) | i == j -> maybeGiveUp $ do
+    (Var i c us, Var j c' vs) | i == j && c == c' -> maybeGiveUp $ do
       a <- typeOfBV i
-      antiUnifyElims pid a (var i) us vs
+      antiUnifyElims pid a (varC i c) us vs
     -- Andreas, 2017-07-27:
     -- It seems that nothing guarantees here that the constructors are fully
     -- applied!?  Thus, @a@ could be a function type and we need the robust

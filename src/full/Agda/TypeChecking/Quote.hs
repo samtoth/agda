@@ -146,8 +146,9 @@ quotingKit = do
         modality !@ quoteRelevance (getRelevance m)
                  @@ quoteQuantity  (getQuantity  m)
 
+      -- TODO(sam): Do something for MTT modalities?
       quoteArgInfo :: ArgInfo -> ReduceM Term
-      quoteArgInfo (ArgInfo h m _ _ _) =
+      quoteArgInfo (ArgInfo h m _ _ _ _) =
         arginfo !@ quoteHiding h
                 @@ quoteModality m
 
@@ -258,7 +259,7 @@ quotingKit = do
       quoteTerm v = do
         v <- instantiate' v
         case unSpine v of
-          Var n es   ->
+          Var n _ es   ->
              let ts = fromMaybe __IMPOSSIBLE__ $ allApplyElims es
              in  var !@! Lit (LitNat $ fromIntegral n) @@ quoteArgs ts
           Lam info t -> lam !@ quoteHiding (getHiding info) @@ quoteAbs quoteTerm t

@@ -244,6 +244,7 @@ typeErrorName = \case
   VariableIsIrrelevant                                       {} -> VariableIsIrrelevant_
   VariableIsOfUnusableCohesion                               {} -> VariableIsOfUnusableCohesion_
   VariableIsOfUnusablePolarity                               {} -> VariableIsOfUnusablePolarity_
+  VariableProjectionIsIllTyped                               {} -> VariableProjectionIsIllTyped_
   WithClausePatternMismatch                                  {} -> WithClausePatternMismatch_
   WithOnFreeVariable                                         {} -> WithOnFreeVariable_
   WrongAnnotationInLambda                                    {} -> WrongAnnotationInLambda_

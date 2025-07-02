@@ -230,6 +230,7 @@ tokens :-
 <0,code> "->"           { symbol SymArrow }
 <0,code> "\"            { symbol SymLambda } -- "
 <0,code> "@"            { symbol SymAs }
+<0,code> "^{"           { symbol SymOpenExpBrace }
 <0,code> "{{" /[^[!\-]] { symbol SymDoubleOpenBrace }
 -- Andreas, 2019-08-08, issue #3962, don't lex '{{' if followed by '-'
 -- since this will be confused with '{-' (start of comment) by Emacs.

@@ -122,10 +122,10 @@ instance IsPrefixOf Args where
 instance IsPrefixOf Term where
   isPrefixOf u v =
     case (u, v) of
-      (Var   i us, Var   j vs) | i == j  -> us `isPrefixOf` vs
-      (Def   f us, Def   g vs) | f == g  -> us `isPrefixOf` vs
-      (Con c _ us, Con d _ vs) | c == d  -> us `isPrefixOf` vs
-      (MetaV x us, MetaV y vs) | x == y  -> us `isPrefixOf` vs
+      (Var i c us, Var j c' vs) | i == j && c == c'  -> us `isPrefixOf` vs
+      (Def   f us, Def    g vs) | f == g  -> us `isPrefixOf` vs
+      (Con c _ us, Con  d _ vs) | c == d  -> us `isPrefixOf` vs
+      (MetaV x us, MetaV  y vs) | x == y  -> us `isPrefixOf` vs
       (u, v) -> guard (equalSy u v) >> return []
 
 -- Type-based abstraction. Needed if u is a constructor application (#745).
@@ -184,12 +184,12 @@ class AbsTerm a where
   absTerm :: Term -> a -> a
 
 instance AbsTerm Term where
-  absTerm u v | Just es <- u `isPrefixOf` v = Var 0 $ absT es
+  absTerm u v | Just es <- u `isPrefixOf` v = Var 0 Nothing $ absT es
               | otherwise                   =
     case v of
 -- Andreas, 2013-10-20: the original impl. works only at base types
 --    v | u == v  -> Var 0 []  -- incomplete see succeed/WithOfFunctionType
-      Var i vs    -> Var (i + 1) $ absT vs
+      Var i c vs    -> Var (i + 1) c $ absT vs
       Lam h b     -> Lam h $ absT b
       Def c vs    -> Def c $ absT vs
       Con c ci vs -> Con c ci $ absT vs
@@ -272,7 +272,7 @@ instance EqualSy a => EqualSy [a] where
 
 instance EqualSy Term where
   equalSy = curry $ \case
-    (Var i   vs, Var i'   vs') -> i == i' && equalSy vs vs'
+    (Var i c vs, Var i' c' vs') -> i == i' && c == c' && equalSy vs vs'
     (Con c _ es, Con c' _ es') -> c == c' && equalSy es es'
     (Def   f es, Def   f' es') -> f == f' && equalSy es es'
     (MetaV x es, MetaV x' es') -> x == x' && equalSy es es'
@@ -330,8 +330,8 @@ instance (Subst a, EqualSy a) => EqualSy (Abs a) where
 
 -- | Ignore origin and free variables.
 instance EqualSy ArgInfo where
-  equalSy (ArgInfo h m _o _fv a) (ArgInfo h' m' _o' _fv' a') =
-    h == h' && m == m' && a == a'
+  equalSy (ArgInfo h m m2 _o _fv a) (ArgInfo h' m' m2' _o' _fv' a') =
+    h == h' && m == m' && m2 == m2' && a == a'
 
 -- | Ignore the tactic.
 instance EqualSy a => EqualSy (Dom a) where
@@ -345,7 +345,7 @@ instance EqualSy a => EqualSy (Dom a) where
 -- | Ignores irrelevant arguments and modality.
 --   (And, of course, origin and free variables).
 instance EqualSy a => EqualSy (Arg a) where
-  equalSy (Arg (ArgInfo h m _o _fv a) v) (Arg (ArgInfo h' m' _o' _fv' a') v') =
+  equalSy (Arg (ArgInfo h m _m2 _o _fv a) v) (Arg (ArgInfo h' m' _m2' _o' _fv' a') v') =
     h == h' && (isIrrelevant m || isIrrelevant m' || equalSy v v')
     -- Andreas, 2017-10-04, issue #2775,
     -- ignore irrelevant arguments during with-abstraction.

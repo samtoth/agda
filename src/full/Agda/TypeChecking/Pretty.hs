@@ -238,6 +238,8 @@ instance PrettyTCM ContextEntry       where prettyTCM = prettyA <=< reify       
 instance PrettyTCM Permutation        where prettyTCM = text . show               ; {-# SPECIALIZE prettyTCM :: Permutation       -> TCM Doc #-}
 instance PrettyTCM Polarity           where prettyTCM = text . show               ; {-# SPECIALIZE prettyTCM :: Polarity          -> TCM Doc #-}
 instance PrettyTCM IsForced           where prettyTCM = text . show               ; {-# SPECIALIZE prettyTCM :: IsForced          -> TCM Doc #-}
+instance PrettyTCM Cell               where prettyTCM = pretty                    ; {-# SPECIALIZE prettyTCM :: Cell              -> TCM Doc #-}
+instance PrettyTCM Dim                where prettyTCM = pretty                    ; {-# SPECIALIZE prettyTCM :: Dim               -> TCM Doc #-}
 
 instance PrettyTCM Name         where prettyTCM = fmap P.pretty . abstractToConcrete_ ; {-# SPECIALIZE prettyTCM :: Name          -> TCM Doc #-}
 instance PrettyTCM QName        where prettyTCM = fmap P.pretty . abstractToConcrete_ ; {-# SPECIALIZE prettyTCM :: QName         -> TCM Doc #-}
@@ -470,7 +472,7 @@ instance PrettyTCM (Elim' DisplayTerm) where
 {-# SPECIALIZE prettyTCM :: Elim' DisplayTerm -> TCM Doc #-}
 
 instance PrettyTCM NLPat where
-  prettyTCM (PVar x bvs) = prettyTCM (Var x (map (Apply . fmap var) bvs))
+  prettyTCM (PVar x bvs) = prettyTCM (Var x Nothing (map (Apply . fmap var) bvs))
   prettyTCM (PDef f es) = parens $
     prettyTCM f <+> fsep (map prettyTCM es)
   prettyTCM (PLam i u)  = parens $ fsep

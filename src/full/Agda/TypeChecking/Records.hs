@@ -1,4 +1,6 @@
 {-# LANGUAGE NondecreasingIndentation #-}
+{-# OPTIONS_GHC -Wno-unrecognised-pragmas #-}
+{-# HLINT ignore "Use if" #-}
 
 module Agda.TypeChecking.Records where
 
@@ -590,7 +592,7 @@ expandRecordVar i gamma0 = do
           tau  = liftS (size gamma2) tau0
 
       --  Fields are in order first-first.
-          zs  = for fs $ fmap $ \ f -> Var 0 [Proj ProjSystem f]
+          zs  = for fs $ fmap $ \ f -> Var 0 Nothing [Proj ProjSystem f]
       --  We need to reverse the field sequence to build the substitution.
       -- @Γ₁, x:_ ⊢ σ₀ : Γ₁, Γ'@
           sigma0 = reverse (map unArg zs) ++# raiseS 1
@@ -657,7 +659,7 @@ curryAt t n = do
           xs  = reverse $ zipWith (\ ai i -> Arg ai $ var i) gammai [m..]
           curry v = teleLam gamma $ teleLam tel $
                       raise (n + m) v `apply` (xs ++ [Arg ai u])
-          zs  = for fs $ fmap $ \ f -> Var 0 [Proj ProjSystem f]
+          zs  = for fs $ fmap $ \ f -> Var 0 Nothing [Proj ProjSystem f]
           atel = sgTel $ (,) (absName b) <$> dom
           uncurry v = teleLam gamma $ teleLam atel $
                         raise (n + 1) v `apply` (xs ++ zs)
@@ -951,31 +953,31 @@ isSingletonType' regardIrrelevance t rs = do
 
       (<|>) <$> record <*> subtype
 
-{-# SPECIALIZE isEtaVar :: Term -> Type -> TCM (Maybe Int) #-}
+{-# SPECIALIZE isEtaVar :: Term -> Type -> TCM (Maybe (Int,Maybe Cell)) #-}
 -- | Checks whether the given term (of the given type) is beta-eta-equivalent
---   to a variable. Returns just the de Bruijn-index of the variable if it is,
---   or nothing otherwise.
-isEtaVar :: forall m. PureTCM m => Term -> Type -> m (Maybe Int)
+--   to a variable. Returns just the de Bruijn-index and modal projection
+--   of the variable if it is, or nothing otherwise.
+isEtaVar :: forall m. PureTCM m => Term -> Type -> m (Maybe (Int, Maybe Cell))
 isEtaVar u a = runMaybeT $ isEtaVarG u a Nothing []
   where
     -- Checks whether the term u (of type a) is beta-eta-equivalent to
     -- `Var i es`, and returns i if it is. If the argument mi is `Just i'`,
     -- then i and i' are also required to be equal (else Nothing is returned).
-    isEtaVarG :: Term -> Type -> Maybe Int -> [Elim' Int] -> MaybeT m Int
+    isEtaVarG :: Term -> Type -> Maybe (Int,Maybe Cell) -> [Elim' (Int,Maybe Cell)] -> MaybeT m (Int, Maybe Cell)
     isEtaVarG u a mi es = do
       (u, a) <- reduce (u, a)
       reportSDoc "tc.lhs" 80 $ "isEtaVarG" <+> nest 2 (vcat
         [ "u  = " <+> prettyTCM u
         , "a  = " <+> prettyTCM a
         , "mi = " <+> text (show mi)
-        , "es = " <+> prettyList_ (map (prettyTCM . fmap var) es)
+        , "es = " <+> prettyList_ (map (prettyTCM . fmap (uncurry varC)) es)
         ])
       case (u, unEl a) of
-        (Var i' es', _) -> do
-          guard $ mi == (i' <$ mi)
+        (Var i' c es', _) -> do
+          guard $ mi == ((i',c) <$ mi)
           b <- typeOfBV i'
           areEtaVarElims (var i') b es' es
-          return i'
+          return (i', c)
         (_, Def d pars) -> do
           guard =<< do isEtaRecord d
           fs <- map unDom . recFields . theDef <$> getConstInfo d
@@ -990,15 +992,15 @@ isEtaVar u a = runMaybeT $ isEtaVarG u a Nothing []
         (_, Pi dom cod) -> addContext dom $ do
           let u'  = raise 1 u `apply` [argFromDom dom $> var 0]
               a'  = absBody cod
-              mi' = fmap (+ 1) mi
-              es' = (fmap . fmap) (+ 1) es ++ [Apply $ argFromDom dom $> 0]
-          (-1 +) <$> isEtaVarG u' a' mi' es'
+              mi' = fmap (first (+ 1)) mi
+              es' = (fmap . fmap) (first (+ 1)) es ++ [Apply $ argFromDom dom $> (0, Nothing)]
+          (first (-1 +)) <$> isEtaVarG u' a' mi' es'
         _ -> mzero
 
     -- `areEtaVarElims u a es es'` checks whether the given elims es (as applied
     -- to the term u of type a) are beta-eta-equal to either projections or
     -- variables with de Bruijn indices given by es'.
-    areEtaVarElims :: Term -> Type -> Elims -> [Elim' Int] -> MaybeT m ()
+    areEtaVarElims :: Term -> Type -> Elims -> [Elim' (Int,Maybe Cell)] -> MaybeT m ()
     areEtaVarElims u a []    []    = return ()
     areEtaVarElims u a []    (_:_) = mzero
     areEtaVarElims u a (_:_) []    = mzero
@@ -1021,7 +1023,7 @@ isEtaVar u a = runMaybeT $ isEtaVarG u a Nothing []
     areEtaVarElims u a (Apply v : es) (Apply i : es') = do
       ifNotPiType a (const mzero) $ \dom cod -> do
       _ <- isEtaVarG (unArg v) (unDom dom) (Just $ unArg i) []
-      areEtaVarElims (u `apply` [fmap var i]) (cod `absApp` var (unArg i)) es es'
+      areEtaVarElims (u `apply` [fmap (uncurry varC) i]) (cod `absApp` uncurry varC (unArg i)) es es'
 
 
 -- | Replace projection patterns by the original projections.

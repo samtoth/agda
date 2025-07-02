@@ -122,7 +122,7 @@ headSymbol v = do -- ignoreAbstractMode $ do
                      {- else -}     return $ Just $ ConsHead q
     Sort _  -> return (Just SortHead)
     Pi _ _  -> return (Just PiHead)
-    Var i [] -> return (Just $ VarHead i) -- Only naked variables. Otherwise substituting a neutral term is not guaranteed to stay neutral.
+    Var i _ [] -> return (Just $ VarHead i) -- Only naked variables. Otherwise substituting a neutral term is not guaranteed to stay neutral.
     Lit _   -> return Nothing -- TODO: LitHead (for literals with no constructorForm)
     Lam{}   -> return Nothing
     Var{}   -> return Nothing
@@ -170,7 +170,7 @@ headSymbol' v = do
         ifM (isPathCons q)
           (pure Nothing)
           (return $ Just $ ConsHead q)
-      Var i _    -> return $ Just (VarHead i)
+      Var i _ _    -> return $ Just (VarHead i)
       Sort _     -> return $ Just SortHead
       Pi _ _     -> return $ Just PiHead
       Lit _      -> return Nothing

@@ -163,14 +163,20 @@ parseSource sourceFile = Bench.billTo [Bench.Parsing] $ do
   source <- runPM $ readFilePM rf0
   let txt = TL.unpack source
 
+  liftIO . putStrLn $ "From Sam, pre parse module name"
+
   -- Bootstrapping: parse the module name.
   parsedModName0 <- moduleName f . fst . fst =<< do
     runPMDropWarnings $ parseFile moduleParser rf0 txt
+
+  liftIO . putStrLn $ "From Sam, parses module name fine"
 
   -- Now parse again, with module name present to be filled into the ranges.
   let rf = mkRangeFile f $ Just parsedModName0
   ((parsedMod, attrs), fileType) <- runPM $ parseFile moduleParser rf txt
   parsedModName                  <- moduleName f parsedMod
+
+  liftIO . putStrLn $ "From Sam, parses the whole goddarnem thing fine"
 
   libs <- getAgdaLibFiles f parsedModName
   return Source
@@ -1061,6 +1067,7 @@ createInterface mname sf@(SourceFile sfi) isMain msrc = do
   let x = mname
   file <- srcFilePath sf
   let fp = filePath file
+  liftIO $ putStrLn "From Sam in interface creation. It's so bauked the logging has failed"
   let checkMsg = case isMain of
                    MainInterface ScopeCheck -> "Reading "
                    _                        -> "Checking"

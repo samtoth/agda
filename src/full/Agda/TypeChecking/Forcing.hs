@@ -235,7 +235,7 @@ instance ForcedVariables a => ForcedVariables (Arg a) where
 instance ForcedVariables Term where
   -- Andreas, 2024-07-07, issue #6744, add reduction.
   forcedVariables v = reduce v >>= \case
-    Var i []   -> singleton (i, unitModality)
+    Var i _ []   -> singleton (i, unitModality)
     Con c _ vs -> ifM (consOfHIT $ conName c) mempty $ {-else-} forcedVariables vs
     _          -> mempty
 

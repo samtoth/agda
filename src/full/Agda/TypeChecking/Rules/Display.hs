@@ -128,7 +128,7 @@ bindVar x ret = addContext x ret
 exprToTerm :: A.Expr -> M Term
 exprToTerm e =
   case unScope e of
-    A.Var x          -> fst <$> getVarInfo x
+    A.Var x c        -> fst <$> getVarInfo x
     A.Def' f NoSuffix-> pure $ Def f []
     A.Def'{}         -> fail "suffix"
     A.Con c          -> pure $ Con (ConHead (headAmbQ c) IsData Inductive []) ConOCon [] -- Don't care too much about ambiguity here
@@ -170,7 +170,7 @@ renumberElims n es = evalState (renumbers es) n
     renumbers = (traverse . traverse) renumber
 
     renumber :: Term -> State Nat Term
-    renumber (Var 0 [])   = var <$> next
+    renumber (Var 0 _ [])   = var <$> next
     renumber (Def f es)   = Def f <$> renumbers es
     renumber (Con c h es) = Con c h <$> renumbers es
     renumber (Lit l)      = pure $ Lit l

@@ -512,6 +512,8 @@ data NewName a = NewName
 data OldQName = OldQName
   C.QName
     -- ^ Concrete name to be resolved.
+  (Maybe Cell) 
+    -- ^ A potiential modal projection
   (Maybe (Set1 A.Name))
     -- ^ If a set is given, then the first name must
     --   correspond to one of the names in the set.
@@ -554,16 +556,16 @@ instance ToAbstract (NewName C.BoundName) where
 
 instance ToAbstract OldQName where
   type AbsOfCon OldQName = A.Expr
-  toAbstract q@(OldQName x _) =
+  toAbstract q@(OldQName x _ _) =
     fromMaybeM (notInScopeError x) $ toAbstract (MaybeOldQName q)
 
 instance ToAbstract MaybeOldQName where
   type AbsOfCon MaybeOldQName = Maybe A.Expr
-  toAbstract (MaybeOldQName (OldQName x ns)) = do
+  toAbstract (MaybeOldQName (OldQName x c ns)) = do
     qx <- resolveName' allKindsOfNames ns x
     reportSLn "scope.name" 30 $ "resolved " ++ prettyShow x ++ ": " ++ prettyShow qx
     case qx of
-      VarName x' _         -> return $ Just $ A.Var x'
+      VarName x' _         -> return $ Just $ A.Var x' c
       DefinedName _ d suffix -> do
         raiseWarningsOnUsage $ anameName d
         -- then we take note of generalized names used
@@ -831,9 +833,10 @@ instance ToAbstract C.Expr where
     traceCall (ScopeCheckExpr e) $ annotateExpr $ case e of
 
   -- Names
-      Ident x -> toAbstract (OldQName x Nothing)
-      KnownIdent _ x -> toAbstract (OldQName x Nothing)
+      Ident x -> toAbstract (OldQName x Nothing Nothing)
+      KnownIdent _ x -> toAbstract (OldQName x Nothing Nothing)
       -- Just discard the syntax highlighting information.
+      ModProj _ nm pr -> toAbstract (OldQName nm (cellFromString . render.pretty $ pr) Nothing)
 
   -- Literals
       C.Lit r l -> do
@@ -2633,7 +2636,7 @@ instance ToAbstract C.Pragma where
       scopeCheckDef (PragmaExpectsDefinedSymbol "INJECTIVE_FOR_INFERENCE") x
 
   toAbstract pragma@(C.InlinePragma _ b x) = do
-      caseMaybeM (toAbstract $ MaybeOldQName $ OldQName x Nothing) notInScope \case
+      caseMaybeM (toAbstract $ MaybeOldQName $ OldQName x Nothing Nothing) notInScope \case
         A.Con (AmbQ xs)                -> concatMapM ret $ List1.toList xs
         A.Def x                        -> ret x
         A.Proj _ p
@@ -2798,7 +2801,7 @@ uselessPragma pragma = ([] <$) . warning . UselessPragma (getRange pragma) . P.f
 
 unambiguousConOrDef :: (C.QName -> IsAmbiguous -> Warning) -> C.QName -> ScopeM (Maybe A.QName)
 unambiguousConOrDef warn x = do
-    caseMaybeM (toAbstract $ MaybeOldQName $ OldQName x Nothing) notInScope $ \case
+    caseMaybeM (toAbstract $ MaybeOldQName $ OldQName x Nothing Nothing) notInScope $ \case
       A.Def' y NoSuffix              -> ret y
       A.Def' y Suffix{}              -> failure NotAmbiguous
       A.Proj _ p
@@ -2817,7 +2820,7 @@ unambiguousConOrDef warn x = do
 
 unambiguousDef :: (C.QName -> IsAmbiguous -> Warning) -> C.QName -> ScopeM (Maybe A.QName)
 unambiguousDef warn x = do
-    caseMaybeM (toAbstract $ MaybeOldQName $ OldQName x Nothing) notInScope $ \case
+    caseMaybeM (toAbstract $ MaybeOldQName $ OldQName x Nothing Nothing) notInScope $ \case
       A.Def' y NoSuffix              -> ret y
       A.Def' y Suffix{}              -> failure NotAmbiguous
       A.Proj _ p
@@ -2834,7 +2837,7 @@ unambiguousDef warn x = do
 
 scopeCheckDef :: (C.QName -> Warning) -> C.QName -> ScopeM (Maybe A.QName)
 scopeCheckDef warn x = do
-    caseMaybeM (toAbstract $ MaybeOldQName $ OldQName x Nothing) notInScope $ \case
+    caseMaybeM (toAbstract $ MaybeOldQName $ OldQName x Nothing Nothing) notInScope $ \case
       A.Def' y NoSuffix -> ret y
       A.Def' y Suffix{} -> failure
       A.Proj{}          -> failure
@@ -3435,7 +3438,7 @@ instance ToAbstract CPattern where
     AppP (QuoteP _) p
       | IdentP _ x <- namedArg p -> do
           if visible p then do
-            e <- toAbstract (OldQName x Nothing)
+            e <- toAbstract (OldQName x Nothing Nothing)
             A.LitP (PatRange $ getRange x) . LitQName <$> quotedName e
           else typeError $ CannotQuote CannotQuoteHidden
       | otherwise -> typeError $ CannotQuote $ CannotQuotePattern p
@@ -3561,7 +3564,7 @@ toAbstractOpApp op ns es = do
     -- If not, crash.
     unless (length (filter isAHole nonBindingParts) == length es) __IMPOSSIBLE__
     -- Translate operator and its arguments (each in the right context).
-    op <- toAbstract (OldQName op (Just ns))
+    op <- toAbstract (OldQName op Nothing (Just ns))
     es <- left (notaFixity nota) nonBindingParts es
     -- Prepend the generated section binders (if any).
     let body = List.foldl' app op es
@@ -3640,7 +3643,7 @@ toAbstractOpApp op ns es = do
         let i = setOrigin Inserted $ argInfo a
         (ls, ns) <- replacePlaceholders as
         return ( A.mkDomainFree (unnamedArg i $ A.insertedBinder_ x) : ls
-               , set (Left (Var x)) a : ns
+               , set (Left (Var x Nothing)) a : ns
                )
       where
       set :: a -> NamedArg b -> NamedArg a
@@ -3674,6 +3677,7 @@ checkAttributes (Attr r s attr : attrs) =
       unlessM (optPolarity <$> pragmaOptions) $
         setCurrentRange r $ typeError $ AttributeKindNotEnabled "Polarity" "--polarity" s
       cont
+    MTTAttribute{} -> cont
   where
   cont = checkAttributes attrs
 

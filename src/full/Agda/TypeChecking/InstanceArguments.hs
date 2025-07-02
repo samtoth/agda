@@ -1075,10 +1075,10 @@ getOutputTypeName t = ignoreAbstractMode $ do
   ifBlocked (unEl t') (\b t -> return (tel , __DUMMY_TERM__, OutputTypeNameNotYetKnown b)) $ \ _ v ->
     case v of
       -- Possible base types:
-      Def n _  -> return (tel, v, OutputTypeName n)
-      Sort{}   -> return (tel, v, NoOutputTypeName)
-      Var n _  -> return (tel, v, OutputTypeVar)
-      Pi{}     -> return (tel, v, OutputTypeVisiblePi)
+      Def n _   -> return (tel, v, OutputTypeName n)
+      Sort{}    -> return (tel, v, NoOutputTypeName)
+      Var n _ _ -> return (tel, v, OutputTypeVar)
+      Pi{}      -> return (tel, v, OutputTypeVisiblePi)
       -- Not base types:
       Con{}    -> __IMPOSSIBLE__
       Lam{}    -> __IMPOSSIBLE__

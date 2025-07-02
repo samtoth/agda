@@ -151,7 +151,7 @@ instance SynEq Term where
   synEq v v' = if unsafeComparePointers v v' then return (v, v') else do
     (v, v') <- lift $ instantiate' (v, v')
     case (v, v') of
-      (Var   i vs, Var   i' vs') | i == i' -> Var i   <$$> synEq vs vs'
+      (Var i c vs, Var i' c' vs') | i == i' && c == c' -> Var i c <$$> synEq vs vs'
       (Con c i vs, Con c' i' vs') | c == c' -> Con c (bestConInfo i i') <$$> synEq vs vs'
       (Def   f vs, Def   f' vs') | f == f' -> Def f   <$$> synEq vs vs'
       (MetaV x vs, MetaV x' vs') | x == x' -> MetaV x <$$> synEq vs vs'
@@ -237,6 +237,6 @@ instance SynEq a => SynEq (Dom a) where
     | otherwise = inequal (d, d')
 
 instance SynEq ArgInfo where
-  synEq ai@(ArgInfo h r o _ a) ai'@(ArgInfo h' r' o' _ a')
-    | h == h', sameModality r r', a == a' = pure2 ai
+  synEq ai@(ArgInfo h r m o _ a) ai'@(ArgInfo h' r' m' o' _ a')
+    | h == h', sameModality r r', m == m', a == a' = pure2 ai
     | otherwise        = inequal (ai, ai')

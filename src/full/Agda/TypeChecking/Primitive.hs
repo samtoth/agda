@@ -374,7 +374,7 @@ instance FromTerm Bool where
             a =?= b = a === b
             Def x [] === Def y []   = x == y
             Con x _ [] === Con y _ [] = x == y
-            Var n [] === Var m []   = n == m
+            Var n c [] === Var m c' []   = n == m && c == c'
             _        === _          = False
 
 instance (ToTerm a, FromTerm a) => FromTerm [a] where

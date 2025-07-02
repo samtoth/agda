@@ -176,7 +176,7 @@ unifyElims vs ts k = do
   where
   candidate :: [Term] -> [Term] -> ([(Nat, DList Term)], [(Term, Term)])
   candidate is ts = case (is, ts) of
-    (i : is, Var j [] : ts) -> first ((j, singleton i) :) $
+    (i : is, Var j _ [] : ts) -> first ((j, singleton i) :) $
                                candidate is ts
     (i : is, t : ts)        -> second ((i, t) :) $
                                candidate is ts

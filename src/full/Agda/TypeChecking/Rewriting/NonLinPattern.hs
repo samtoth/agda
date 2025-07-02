@@ -139,10 +139,10 @@ instance PatternFrom Term NLPat where
         let body = raise 1 v `applyE` [ IApply (raise 1 $ x) (raise 1 $ y) $ var 0 ]
         p <- addContext a (patternFrom r (k + 1) (absBody b) body)
         return $ PLam (domInfo a) $ Abs (absName b) p
-      (_ , Var i es)
+      (_ , Var i c es)
        | i < k     -> do
            t <- typeOfBV i
-           PBoundVar i <$> patternFrom r k (t , Var i) es
+           PBoundVar i <$> patternFrom r k (t , Var i c) es
        -- The arguments of `var i` should be distinct bound variables
        -- in order to build a Miller pattern
        | Just vs <- allApplyElims es -> do
@@ -152,8 +152,8 @@ instance PatternFrom Term NLPat where
            mbvs <- forM (zip ts vs) $ \(t , v) -> do
              blockOnMetasIn (v,t)
              isEtaVar (unArg v) t >>= \case
-               Just j | j < k -> return $ Just $ v $> j
-               _              -> return Nothing
+               Just (j,_) | j < k -> return $ Just $ v $> j
+               _                  -> return Nothing
            case sequence mbvs of
              Just bvs | fastDistinct bvs -> do
                let allBoundVars = IntSet.fromList (downFrom k)
@@ -216,7 +216,7 @@ instance NLPatToTerm Nat Term where
 
 instance NLPatToTerm NLPat Term where
   nlPatToTerm = \case
-    PVar i xs      -> Var i . map Apply <$> nlPatToTerm xs
+    PVar i xs      -> Var i Nothing . map Apply <$> nlPatToTerm xs
     PTerm u        -> return u
     PDef f es      -> (theDef <$> getConstInfo f) >>= \case
       Constructor{ conSrcCon = c } -> Con c ConOSystem <$> nlPatToTerm es
@@ -224,7 +224,7 @@ instance NLPatToTerm NLPat Term where
     PLam i u       -> Lam i <$> nlPatToTerm u
     PPi a b        -> Pi    <$> nlPatToTerm a <*> nlPatToTerm b
     PSort s        -> Sort  <$> nlPatToTerm s
-    PBoundVar i es -> Var i <$> nlPatToTerm es
+    PBoundVar i es -> Var i Nothing <$> nlPatToTerm es
 
 instance NLPatToTerm NLPat Level where
   nlPatToTerm = nlPatToTerm >=> levelView

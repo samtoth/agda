@@ -154,6 +154,7 @@ exprFieldA f r = f (_exprFieldA r) <&> \x -> r { _exprFieldA = x }
 -- | Concrete expressions. Should represent exactly what the user wrote.
 data Expr
   = Ident QName                                -- ^ ex: @x@
+  | ModProj Range QName Name                   -- ^ ex: @x^{ S0Z }
   | Lit Range Literal                          -- ^ ex: @1@ or @\"foo\"@
   | QuestionMark Range (Maybe Nat)             -- ^ ex: @?@ or @{! ... !}@
   | Underscore Range (Maybe String)            -- ^ ex: @_@ or @_A_5@
@@ -917,6 +918,7 @@ instance HasRange e => HasRange (OpApp e) where
 instance HasRange Expr where
   getRange = \case
       Ident x            -> getRange x
+      ModProj r _ _      -> r
       Lit r _            -> r
       QuestionMark r _   -> r
       Underscore r _     -> r
@@ -1189,6 +1191,7 @@ instance KillRange Declaration where
 
 instance KillRange Expr where
   killRange (Ident q)              = killRangeN Ident q
+  killRange (ModProj _ a b)        = killRangeN (ModProj noRange) a b
   killRange (Lit _ l)              = killRangeN (Lit noRange) l
   killRange (QuestionMark _ n)     = QuestionMark noRange n
   killRange (Underscore _ n)       = Underscore noRange n
@@ -1312,6 +1315,7 @@ instance KillRange WhereClause where
 
 instance NFData Expr where
   rnf (Ident a)           = rnf a
+  rnf (ModProj _ a b)     = rnf a `seq` rnf b
   rnf (Lit _ a)           = rnf a
   rnf (QuestionMark _ a)  = rnf a
   rnf (Underscore _ a)    = rnf a

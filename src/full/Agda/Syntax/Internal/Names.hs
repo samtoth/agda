@@ -217,7 +217,7 @@ instance NamesIn Sort where
 
 instance NamesIn Term where
   namesAndMetasIn' sg = \case
-    Var _ args   -> namesAndMetasIn' sg args
+    Var _ _ args -> namesAndMetasIn' sg args
     Lam _ b      -> namesAndMetasIn' sg b
     Lit l        -> namesAndMetasIn' sg l
     Def f args   -> namesAndMetasIn' sg (f, args)

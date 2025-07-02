@@ -247,7 +247,7 @@ instance Hilite A.Pragma where
 
 instance Hilite A.Expr where
   hilite = \case
-      A.Var x                       -> hl $ A.BindName x        -- bound variable like binder
+      A.Var x  _                    -> hl $ A.BindName x        -- bound variable like binder
       A.Def' q _                    -> hiliteQName Nothing q
       A.Proj _o qs                  -> hiliteAmbiguousQName Nothing qs  -- Issue #4604: not: hiliteProjection qs
                                          -- Names from @open R r@ should not be highlighted as projections
@@ -399,7 +399,7 @@ instance Hilite a => Hilite (Arg a) where
   hilite (Arg ai e) = hilite ai <> hilite e
 
 instance Hilite ArgInfo where
-  hilite (ArgInfo _hiding modality _origin _fv _a) = hilite modality
+  hilite (ArgInfo _hiding modality _mtt _origin _fv _a) = hilite modality
 
 instance Hilite Modality where
   hilite (Modality _relevance quantity _cohesion _polarity) = hilite quantity

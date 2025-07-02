@@ -145,7 +145,7 @@ splitTermKey precise local tm = catchPatternErr (\b -> pure (FlexK, [], b)) do
     -- under, and only variables beyond those are considered LocalK. The
     -- others are considered FlexK since they're "pattern variables" of
     -- the instance.
-    Var i as | i >= local, Just as <- allApplyElims as -> do
+    Var i _ as | i >= local, Just as <- allApplyElims as -> do
       let ty = unDom <$> domOfBV i
       (arity, as) <- termKeyElims precise ty as
       pure (LocalK (i - local) arity, as, neverUnblock)
@@ -154,8 +154,8 @@ splitTermKey precise local tm = catchPatternErr (\b -> pure (FlexK, [], b)) do
     -- neutral definitions as rigid things regardless of their spines
     -- (especially if they have projections), than it is to try to
     -- represent them accurately.
-    Def q as | not precise             -> pure (RigidK q 0, [], neverUnblock)
-    Var i as | not precise, i >= local -> pure (LocalK (i - local) 0, [], neverUnblock)
+    Def q as | not precise               -> pure (RigidK q 0, [], neverUnblock)
+    Var i _ as | not precise, i >= local -> pure (LocalK (i - local) 0, [], neverUnblock)
 
     Con ch _ as | Just as <- allApplyElims as -> do
       let

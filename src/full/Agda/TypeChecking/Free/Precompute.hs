@@ -56,9 +56,9 @@ instance PrecomputeFreeVars a => PrecomputeFreeVars (Abs a) where
 instance PrecomputeFreeVars Term where
   precomputeFreeVars t =
     case t of
-      Var x es -> do
+      Var x c es -> do
         tell (VarSet.singleton x)
-        Var x <$> precomputeFreeVars es
+        Var x c <$> precomputeFreeVars es
       Lam i b    -> Lam i      <$> precomputeFreeVars b
       Lit{}      -> pure t
       Def f es   -> Def f      <$> precomputeFreeVars es

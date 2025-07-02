@@ -299,10 +299,10 @@ inferHeadDef o x = do
 inferHead :: A.Expr -> TCM (Elims -> Term, Type)
 inferHead e = do
   case e of
-    A.Var x -> do -- traceCall (InferVar x) $ do
+    A.Var x c -> do -- traceCall (InferVar x) $ do
       (u, a) <- getVarInfo x
       reportSDoc "tc.term.var" 20 $ hsep
-        [ "variable" , prettyTCM x
+        [ "variable" , prettyTCM x, "^", prettyTCM c
         , "(" , text (show u) , ")"
         , "has type:" , prettyTCM a
         ]
@@ -321,6 +321,12 @@ inferHead e = do
 
       unless (usablePolarity a) $
         typeError $ VariableIsOfUnusablePolarity x (getModalPolarity a)
+
+      let (MTTMod mu nu) = getMTT (getArgInfo a)
+          c' = maybe (idCell mu) id c
+
+      unless (cellWellTyped c' mu nu) $
+        typeError $ VariableProjectionIsIllTyped x c' mu nu
 
       return (applyE u, unDom a)
 
@@ -795,7 +801,7 @@ checkArgumentsE'
                 let
                   c = case getLock info' of
                     IsLock{} -> Just $ Abs "t" $
-                        CheckLockedVars (Var 0 []) (raise 1 sFunType)
+                        CheckLockedVars (Var 0 Nothing []) (raise 1 sFunType)
                           (raise 1 $ Arg info' u) (raise 1 a)
                     _ -> Nothing
                 lift $ reportSDoc "tc.term.lock" 40 $ text "lock =" <+> text (show $ getLock info')
@@ -871,7 +877,7 @@ isRigid s t | PathType{} <- sPathView s t =
   -- Path is not rigid.
   return $ IsNotRigid Permanent
 isRigid _ (El _ t) = case t of
-  Var x _    -> return $ IsNotRigid (AVar x)
+  Var x _ _  -> return $ IsNotRigid (AVar x)
   Lam{}      -> return $ IsNotRigid Permanent
   Lit{}      -> return $ IsNotRigid Permanent
   Con{}      -> return $ IsNotRigid Permanent
@@ -1246,7 +1252,7 @@ disambiguateByArgs dcs args fallback = do
         case v of
 
           -- We can readly grab the type of a variable from the context.
-          A.Var x -> do
+          A.Var x c -> do
             t <- unDom . snd <$> getVarInfo x
             reportSDoc "tc.check.term.con" 40 $ "type of variable:" <+> prettyTCM t
             -- Just keep the name @D@ of type @D vs@

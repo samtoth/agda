@@ -481,7 +481,7 @@ instance EmbPrj a => EmbPrj (Ranged a) where
   value = valueN Ranged
 
 instance EmbPrj ArgInfo where
-  icod_ (ArgInfo h r o fv ann) = icodeN' ArgInfo h r o fv ann
+  icod_ (ArgInfo h r m2 o fv ann) = icodeN' ArgInfo h r m2 o fv ann
 
   value = valueN ArgInfo
 
@@ -660,6 +660,32 @@ instance EmbPrj Modality where
   value = vcase $ \case
     [a, b, c, d] -> valuN Modality a b c d
     _ -> malformed
+
+instance EmbPrj Cell where
+  icod_ CZ      = icodeN 0 CZ
+  icod_ (CS n)  = icodeN 1 CS n
+  icod_ (Src c) = icodeN 2 Src c
+  icod_ (Tgt c) = icodeN 3 Tgt c
+
+  value = vcase \case
+    [0]   -> valuN CZ
+    [1,a] -> valuN CS a
+    [2,c] -> valuN Src c
+    [3,c] -> valuN Tgt c
+    _     -> malformed
+
+instance EmbPrj Dim where
+  icod_ = icod_ . toInteger
+
+  value n = fromInteger <$> value n
+
+instance EmbPrj MTTModality where
+  icod_ (MTTMod a b) = icodeN' MTTMod a b
+
+  value = vcase $ \case
+    [a, b] -> valuN MTTMod a b
+    _ -> malformed
+
 
 instance EmbPrj OriginRelevant where
   icod_ = \case

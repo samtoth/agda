@@ -992,7 +992,7 @@ assign dir x args v target = addOrUnblocker (unblockOnMeta x) $ do
             -- pruned, see #4136.
 
       reportSDoc "tc.meta.assign" 20 $
-          let pr (Var n []) = text (show n)
+          let pr (Var n c []) = text (show n <> "^" <> show c)
               pr (Def c []) = prettyTCM c
               pr _          = ".."
           in vcat
@@ -1495,7 +1495,7 @@ expandProjectedVars args v ret = loop (args, v) where
         reportSDoc "tc.meta.assign.proj" 40 $
           "no projected var found in args: " <+> prettyTCM args
         done
-      Left (ProjectedVar i _) -> etaExpandProjectedVar i (args, v) done loop
+      Left (ProjectedVar i _ _) -> etaExpandProjectedVar i (args, v) done loop
 
 -- | Eta-expand a de Bruijn index of record type in context and passed term(s).
 etaExpandProjectedVar :: (PrettyTCM a, TermSubst a) => Int -> a -> TCM c -> (a -> TCM c) -> TCM c
@@ -1523,9 +1523,9 @@ instance NoProjectedVar a => NoProjectedVar [a]
 
 instance NoProjectedVar Term where
   noProjectedVar = \case
-      Var i es
+      Var i c es
         | qs@(_:_) <- takeWhileJust id $ map isProjElim es
-        -> Left $ ProjectedVar i qs
+        -> Left $ ProjectedVar i c qs
       -- Andreas, 2015-09-12 Issue #1316:
       -- Also look in inductive record constructors
       Con (ConHead _ IsRecord{} Inductive _) _ es
@@ -1671,11 +1671,11 @@ inverseSubst' skip args = map (mapFst unArg) <$> loop (zip args terms)
     ineg <- getPrimitiveName' builtinINeg
     case stripDontCare v of
       -- i := x
-      Var i [] -> return $ (Arg info i, t) `cons` vars
+      Var i _ [] -> return $ (Arg info i, t) `cons` vars
 
       -- π i := x  try to eta-expand projection π away!
-      Var i es | Just qs <- mapM isProjElim es ->
-        throwError $ ProjVar $ ProjectedVar i qs
+      Var i c es | Just qs <- mapM isProjElim es ->
+        throwError $ ProjVar $ ProjectedVar i c qs
 
       -- (i, j) := x  becomes  [i := fst x, j := snd x]
       -- Andreas, 2013-09-17 but only if constructor is fully applied
@@ -1702,6 +1702,7 @@ inverseSubst' skip args = map (mapFst unArg) <$> loop (zip args terms)
                         , modCohesion   = max (getCohesion  info) (getCohesion  info')
                         , modPolarity   = addPolarity (getModalPolarity info) (getModalPolarity info') -- XXX
                         }
+                      , argInfoMTT      = error "DON'T KNOW WHAT TO DO HERE - sam" 
                       , argInfoOrigin   = min (getOrigin info) (getOrigin info')
                       , argInfoFreeVariables = unknownFreeVariables
                       , argInfoAnnotation    = argInfoAnnotation info'
@@ -1721,7 +1722,7 @@ inverseSubst' skip args = map (mapFst unArg) <$> loop (zip args terms)
 
       -- primINeg i := x becomes i := primINeg x
       -- (primINeg is a definitional involution)
-      Def qn es | Just [Arg _ (Var i [])] <- allApplyElims es, Just qn == ineg ->
+      Def qn es | Just [Arg _ (Var i _ [])] <- allApplyElims es, Just qn == ineg ->
         pure $ (Arg info i, Def qn [Apply (defaultArg t)]) `cons` vars
 
       Def{}      -> neutralArg  -- Note that this Def{} is in normal form and might be prunable.

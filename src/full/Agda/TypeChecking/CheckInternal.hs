@@ -135,7 +135,7 @@ instance CheckInternal Term where
     -- (even lone ones by default).
     v <- elimViewAction action =<< preAction action t v
     postAction action t =<< case v of
-      Var i es   -> do
+      Var i c es   -> do
         d <- domOfBV i
         n <- nameOfBV i
 
@@ -151,10 +151,18 @@ instance CheckInternal Term where
         unless (usablePolarity d) $
           typeError $ VariableIsOfUnusablePolarity n (getModalPolarity d)
 
+        let (MTTMod mu nu) = getMTT (getArgInfo d)
+
+        let c' = maybe (idCell mu) id c
+
+        -- Sam, 2025-06-30
+        unless (cellWellTyped c' mu nu) $
+          typeError $ VariableProjectionIsIllTyped n c' mu nu
+
         reportSDoc "tc.check.internal" 30 $ fsep
-          [ "variable" , prettyTCM (var i) , "has type" , prettyTCM (unDom d)
-          , "and modality", pretty (getModality d) ]
-        checkSpine action (unDom d) (Var i) es cmp t
+          [ "variable" , prettyTCM (varC i c) , "has type" , prettyTCM (unDom d)
+          , "and modality", pretty (getModality d), pretty (getMTT (getArgInfo d)) ]
+        checkSpine action (unDom d) (Var i c) es cmp t
       Def f es   -> do  -- f is not projection(-like)!
         -- There is no "implicitely applied module telescope" at this stage, so no
         -- need to check it for modal errors, everything is covered by the
@@ -255,9 +263,9 @@ infer :: (MonadCheckInternal m) => Term -> m Type
 infer u = do
   reportSDoc "tc.check.internal" 20 $ "CheckInternal.infer" <+> prettyTCM u
   case u of
-    Var i es -> do
+    Var i c es -> do
       a <- typeOfBV i
-      fst <$> inferSpine defaultAction a (Var i) es
+      fst <$> inferSpine defaultAction a (Var i c) es
     Def f es -> do
       whenJustM (isRelevantProjection f) $ \_ -> nonInferable
       a <- defType <$> getConstInfo f

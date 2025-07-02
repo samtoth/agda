@@ -314,8 +314,8 @@ basicUnifyStrategy k s = do
     (Just i, Just j)
      | i == j -> mzero -- Taken care of by checkEqualityStrategy
     (Just i, Just j)
-     | Just fi <- findFlexible i flex
-     , Just fj <- findFlexible j flex -> do
+     | Just fi <- findFlexible (fst i) flex
+     , Just fj <- findFlexible (fst j) flex -> do
        let choice = chooseFlex fi fj
            firstTryLeft  = msum [ return (Solution k dom{unDom = ha} fi v left)
                                 , return (Solution k dom{unDom = ha} fj u right)]
@@ -330,9 +330,9 @@ basicUnifyStrategy k s = do
          ExpandBoth   -> mzero -- This should be taken care of by etaExpandEquationStrategy
          ChooseEither -> firstTryRight
     (Just i, _)
-     | Just fi <- findFlexible i flex -> return $ Solution k dom{unDom = ha} fi v left
+     | Just fi <- findFlexible (fst i) flex -> return $ Solution k dom{unDom = ha} fi v left
     (_, Just j)
-     | Just fj <- findFlexible j flex -> return $ Solution k dom{unDom = ha} fj u right
+     | Just fj <- findFlexible (fst j) flex -> return $ Solution k dom{unDom = ha} fj u right
     _ -> mzero
   where
     flex = flexVars s
@@ -357,8 +357,8 @@ dataStrategy k s = do
       case (u, v) of
         (Con c _ _   , Con c' _ _  ) | c == c' -> return $ Injectivity k a d pars ixs c
         (Con c _ _   , Con c' _ _  ) -> return $ Conflict k a d pars u v
-        (Var i []  , v         ) -> ifOccursStronglyRigid i v $ return $ Cycle k a d pars i v
-        (u         , Var j []  ) -> ifOccursStronglyRigid j u $ return $ Cycle k a d pars j u
+        (Var i _ []  , v         ) -> ifOccursStronglyRigid i v $ return $ Cycle k a d pars i v
+        (u         , Var j _ []  ) -> ifOccursStronglyRigid j u $ return $ Cycle k a d pars j u
         _ -> mzero
     _ -> mzero
   where
@@ -396,7 +396,7 @@ etaExpandVarStrategy k s = do
   where
     -- TODO: use IsEtaVar to check if the term is a variable
     shouldEtaExpand :: Term -> Term -> Type -> UnifyStrategy
-    shouldEtaExpand (Var i es) v a s = do
+    shouldEtaExpand (Var i c es) v a s = do
       fi       <- fromMaybeMP $ findFlexible i (flexVars s)
       reportSDoc "tc.lhs.unify" 50 $
         "Found flexible variable " <+> text (show i)
@@ -441,7 +441,7 @@ etaExpandEquationStrategy k s = do
       Def f es   -> usesCopatterns f
       Con c _ _  -> isJust <$> isRecordConstructor (conName c)
 
-      Var _ _    -> return False
+      Var _ _ _  -> return False
       Lam _ _    -> __IMPOSSIBLE__
       Lit _      -> __IMPOSSIBLE__
       Pi _ _     -> __IMPOSSIBLE__
@@ -801,7 +801,7 @@ solutionStep retry s
   -- To maintain the invariant that each variable in varTel is bound exactly once in the pattern
   -- substitution we need to turn the bound variables in `p` into dot patterns in the rest of the
   -- substitution.
-  let dotSub = foldr composeS idS [ inplaceS i (dotP (Var i [])) | i <- IntMap.keys bound ]
+  let dotSub = foldr composeS idS [ inplaceS i (dotP (Var i Nothing [])) | i <- IntMap.keys bound ]
 
   -- We moved the binding site of some forced variables, so we need to update their modalities in
   -- the telescope. The new modality is the combination of the modality of the variable we are
@@ -942,7 +942,7 @@ patternBindingForcedVars forced v = do
   where
     noForced v = gets $ IntSet.disjoint (precomputedFreeVars v) . IntMap.keysSet
 
-    bind md i = do
+    bind md i c = do
       gets (IntMap.lookup i) >>= \case
         Just md' | related md POLE md' -> do
           -- The new binding site must be more relevant (more relevant = smaller).
@@ -951,12 +951,12 @@ patternBindingForcedVars forced v = do
           tell   $ IntMap.singleton i md
           modify $ IntMap.delete i
           return $ varP (deBruijnVar i)
-        _ -> return $ dotP (Var i [])
+        _ -> return $ dotP (Var i c [])
 
     go md v = ifM (noForced v) (return $ dotP v) $ do
       v' <- lift $ lift $ reduce v
       case v' of
-        Var i [] -> bind md i  -- we know i is forced
+        Var i c [] -> bind md i c  -- we know i is forced
         Con c ci es
           | Just vs <- allApplyElims es -> do
             fs <- defForced <$> getConstInfo (conName c)
@@ -971,7 +971,7 @@ patternBindingForcedVars forced v = do
           | otherwise -> return $ dotP v   -- Higher constructor (es has IApply)
 
         -- Non-pattern positions
-        Var _ (_:_) -> return $ dotP v
+        Var _ _ (_:_) -> return $ dotP v
         Lam{}       -> return $ dotP v
         Pi{}        -> return $ dotP v
         Def{}       -> return $ dotP v

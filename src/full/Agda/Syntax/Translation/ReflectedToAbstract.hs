@@ -176,7 +176,7 @@ instance ToAbstract Term where
   toAbstract = \case
     R.Var i es -> do
       name <- mkVarName i
-      toAbstract (A.Var name, es)
+      toAbstract (A.Var name Nothing, es)
     R.Con c es -> toAbstract (A.Con (unambiguous $ killRange c), es)
     R.Def f es -> do
       af <- mkDef (killRange f)

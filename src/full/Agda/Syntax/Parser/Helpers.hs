@@ -148,6 +148,7 @@ mkValidName constructor' r s = do
                 SymEmptyIdiomBracket -> "an empty idiom bracket"
                 SymDoubleOpenBrace   -> "used for instance arguments"
                 SymDoubleCloseBrace  -> "used for instance arguments"
+                SymOpenExpBrace      -> "used for modal projections"
                 SymOpenBrace         -> "used for hidden arguments"
                 SymCloseBrace        -> "used for hidden arguments"
                 SymOpenVirtualBrace  -> __IMPOSSIBLE__
@@ -293,6 +294,7 @@ onlyErased as = do
     LockAttribute{}      -> unsup "Lock"
     CA.TacticAttribute{} -> unsup "Tactic"
     PolarityAttribute{}  -> unsup "Polarity"
+    MTTAttribute{}       -> unsup "Modality"
     QuantityAttribute q  -> maybe (unsup "Linearity") (return . Just) $ erasedFromQuantity q
     where
     unsup s = do
@@ -526,14 +528,14 @@ patternSynArgs = mapM \ x -> do
         case ai of
 
           -- Benign case:
-          ArgInfo h (Modality Relevant{} (Quantityω _) (Coh Continuous Continuous) (PolarityModality { modPolarityAnn = MixedPolarity })) UserWritten UnknownFVs (Annotation IsNotLock) ->
+          ArgInfo h (Modality Relevant{} (Quantityω _) (Coh Continuous Continuous) (PolarityModality { modPolarityAnn = MixedPolarity })) empty UserWritten UnknownFVs (Annotation IsNotLock) ->
             return $ WithHiding h n
 
           -- Error cases:
-          ArgInfo _ _ _ _ (Annotation (IsLock _)) ->
+          ArgInfo _ _ _ _ _ (Annotation (IsLock _)) ->
             abort $ noAnn "Lock"
 
-          ArgInfo h (Modality r q c p) _ _ _
+          ArgInfo h (Modality r q c p) m2 _ _ _
             | not (isRelevant r) ->
                 abort "Arguments to pattern synonyms must be relevant"
             | not (isQuantityω q) ->
@@ -542,12 +544,13 @@ patternSynArgs = mapM \ x -> do
                 abort $ noAnn "Polarity"
             | c /= (Coh Continuous Continuous) ->
                 abort $ noAnn "Cohesion"
+            | null m2 -> abort $ noAnn "MTT"
 
           -- Invariant: origin and fvs not used.
-          ArgInfo _ _ _ (KnownFVs _) _ -> __IMPOSSIBLE__
-          ArgInfo _ _ o _ _ | o /= UserWritten -> __IMPOSSIBLE__
+          ArgInfo _ _ _ _ (KnownFVs _) _ -> __IMPOSSIBLE__
+          ArgInfo _ _ _ o _ _ | o /= UserWritten -> __IMPOSSIBLE__
 
-          ArgInfo _ _ _ _ _ -> __IMPOSSIBLE__
+          ArgInfo _ _ _ _ _ _ -> __IMPOSSIBLE__
 
       -- Error case: other named args are unsupported (issue #7136)
       | otherwise ->

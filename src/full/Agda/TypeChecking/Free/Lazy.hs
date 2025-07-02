@@ -520,7 +520,7 @@ instance Free Term where
   -- {-# SPECIALIZE freeVars' :: Term -> FreeM All #-}
   -- {-# SPECIALIZE freeVars' :: Term -> FreeM VarSet #-}
   freeVars' t = case unSpine t of -- #4484: unSpine to avoid projected variables being treated as StronglyRigid
-    Var n ts     -> variable n `mappend` do underFlexRig WeaklyRigid $ freeVars' ts
+    Var n c ts   -> variable n `mappend` do underFlexRig WeaklyRigid $ freeVars' ts
     -- λ is not considered guarding, as
     -- we cannot prove that x ≡ λy.x is impossible.
     Lam _ t      -> underFlexRig WeaklyRigid $ freeVars' t

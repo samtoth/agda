@@ -317,7 +317,7 @@ getLeftoverPatterns eqs = do
     getLeftoverPattern :: (A.Name -> PatVarPosition) -> ProblemEq -> m LeftoverPatterns
     getLeftoverPattern isParamName (ProblemEq p v a) = case p of
       (A.VarP A.BindName{unBind = x}) -> isEtaVar v (unDom a) <&> \case
-        Just i -> patternVariable (argFromDom a $> x) i (isParamName x)
+        Just (i,_) -> patternVariable (argFromDom a $> x) i (isParamName x)
         Nothing -> asPattern x v a
       (A.WildP r)
         | isInstance a ->
@@ -338,7 +338,7 @@ getLeftoverPatterns eqs = do
       where
         isInstanceVar :: Term -> Type -> m Bool
         isInstanceVar v a = isEtaVar v a >>= \case
-            Just i -> isInstance <$> domOfBV i
+            Just (i,_) -> isInstance <$> domOfBV i
             Nothing -> return False
 
 -- | Build a renaming for the internal patterns using variable names from

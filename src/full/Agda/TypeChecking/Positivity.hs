@@ -445,7 +445,7 @@ instance ComputeOccurrences Clause where
 
 instance ComputeOccurrences Term where
   occurrences v = case unSpine v of
-    Var i args ->
+    Var i _ args ->
       asks (occI . vars) <> do
         occs <- mapM occurrences args
 

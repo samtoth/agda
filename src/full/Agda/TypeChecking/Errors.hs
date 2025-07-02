@@ -522,6 +522,9 @@ instance PrettyTCM TypeError where
     VariableIsOfUnusableCohesion x c -> fsep
       ["Variable", prettyTCM (nameConcrete x), "is declared", text (show c), "so it cannot be used here"]
 
+    VariableProjectionIsIllTyped n x mu nu -> fsep
+      ["Variable", prettyTCM (nameConcrete n), "with projection", prettyTCM x, "which is not a 2-cell from", prettyTCM mu, "=>", prettyTCM nu]
+
     LambdaIsErased -> fwords $ "Erased pattern-matching lambdas may only be used in erased contexts"
 
     RecordIsErased -> fwords $
@@ -654,7 +657,7 @@ instance PrettyTCM TypeError where
              , "to solution"
              , prettyTCM v
              , "since it contains the variable"
-             , prettyTCM (I.Var i [])
+             , prettyTCM (I.Var i Nothing [])
              , "which is not in scope of the metavariable"
              ]
         )
@@ -1890,7 +1893,7 @@ prettyInEqual t1 t2 = do
     if P.render d1 /= P.render d2 then empty else do
       (v1, v2) <- instantiate (t1, t2)
       case (v1, v2) of
-        (I.Var i1 _, I.Var i2 _)
+        (I.Var i1 _ _, I.Var i2 _ _)
           | i1 == i2  -> generic -- possible, see issue 1826
           | otherwise -> varVar i1 i2
         (I.Def{}, I.Con{}) -> __IMPOSSIBLE__  -- ambiguous identifiers

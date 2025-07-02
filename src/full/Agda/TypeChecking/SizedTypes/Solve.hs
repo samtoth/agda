@@ -652,8 +652,8 @@ instance Subst SizeMeta where
     where
       raise i =
         case lookupS sigma i of
-          Var j [] -> j
-          _        -> __IMPOSSIBLE__
+          Var j _ [] -> j
+          _          -> __IMPOSSIBLE__
 
 -- | Only for 'raise'.
 instance Subst (SizeExpr' NamedRigid SizeMeta) where
@@ -665,7 +665,7 @@ instance Subst (SizeExpr' NamedRigid SizeMeta) where
       Flex  x n -> Flex (applySubst sigma x) n
       Rigid r n ->
         case lookupS sigma $ rigidIndex r of
-          Var j [] -> Rigid r{ rigidIndex = j } n
+          Var j _ [] -> Rigid r{ rigidIndex = j } n
           _        -> __IMPOSSIBLE__
 
 instance Subst SizeConstraint where
@@ -707,7 +707,7 @@ sizeExpr u = do
     SizeInf     -> return $ Just Infty
     SizeSuc u   -> fmap (`plus` (1 :: Offset)) <$> sizeExpr u
     OtherSize u -> case u of
-      Var i []    -> (\ x -> Just $ Rigid (NamedRigid x i) 0) . prettyShow <$> nameOfBV i
+      Var i _ []    -> (\ x -> Just $ Rigid (NamedRigid x i) 0) . prettyShow <$> nameOfBV i
 --      MetaV m es  -> return $ Just $ Flex (SizeMeta m es) 0
       MetaV m es | Just xs <- mapM isVar es, List.fastDistinct xs
                   -> return $ Just $ Flex (SizeMeta m xs) 0
@@ -716,5 +716,5 @@ sizeExpr u = do
     isVar (Proj{})  = Nothing
     isVar (IApply _ _ v) = isVar (Apply (defaultArg v))
     isVar (Apply v) = case unArg v of
-      Var i [] -> Just i
+      Var i _ [] -> Just i
       _        -> Nothing

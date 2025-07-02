@@ -86,8 +86,8 @@ instance (KillRange t, KillRange a) => KillRange (Dom' t a) where
 
 -- | Ignores 'Origin' and 'FreeVariables' and tactic.
 instance Eq a => Eq (Dom' t a) where
-  Dom (ArgInfo h1 m1 _ _ a1) s1 f1 _ x1 == Dom (ArgInfo h2 m2 _ _ a2) s2 f2 _ x2 =
-    (h1, m1, a1, s1, f1, x1) == (h2, m2, a2, s2, f2, x2)
+  Dom (ArgInfo h1 m1 mm1 _ _ a1) s1 f1 _ x1 == Dom (ArgInfo h2 m2 mm2 _ _ a2) s2 f2 _ x2 =
+    (h1, m1, mm1, a1, s1, f1, x1) == (h2, m2, mm2, a2, s2, f2, x2)
 
 instance LensNamed (Dom' t e) where
   type NameOf (Dom' t e) = NamedName
@@ -218,7 +218,7 @@ instance LensConName ConHead where
 --     every constant, even if the definition is an empty
 --     list of clauses.
 --
-data Term = Var {-# UNPACK #-} !Int Elims -- ^ @x es@ neutral
+data Term = Var {-# UNPACK #-} !Int (Maybe Cell) Elims -- ^ @x es@ neutral
           | Lam ArgInfo (Abs Term)        -- ^ Terms are beta normal. Relevance is ignored
           | Lit Literal
           | Def QName Elims               -- ^ @f es@, possibly a delta/iota-redex
@@ -785,10 +785,10 @@ isIOne _ = False
 -- | Absurd lambdas are internally represented as identity
 --   with variable name "()".
 absurdBody :: Abs Term
-absurdBody = Abs absurdPatternName $ Var 0 []
+absurdBody = Abs absurdPatternName $ Var 0 Nothing []
 
 isAbsurdBody :: Abs Term -> Bool
-isAbsurdBody (Abs x (Var 0 [])) = isAbsurdPatternName x
+isAbsurdBody (Abs x (Var 0 _ [])) = isAbsurdPatternName x
 isAbsurdBody _                  = False
 
 absurdPatternName :: PatVarName
@@ -801,10 +801,15 @@ isAbsurdPatternName x = x == absurdPatternName
 -- * Smart constructors
 ---------------------------------------------------------------------------
 
--- | An unapplied variable.
+-- | An unapplied, modal neutral variable.
 var :: Nat -> Term
-var i | i >= 0    = Var i []
+var i | i >= 0    = Var i Nothing []
       | otherwise = __IMPOSSIBLE__
+
+-- | An unapplied variable
+varC :: Nat -> Maybe Cell -> Term
+varC i c | i >= 0    = Var i c []
+         | otherwise = __IMPOSSIBLE__
 
 -- | Add 'DontCare' is it is not already a @DontCare@.
 dontCare :: Term -> Term
@@ -1077,17 +1082,17 @@ unSpine' p v =
 hasElims :: Term -> Maybe (Elims -> Term, Elims)
 hasElims v =
   case v of
-    Var   i es -> Just (Var   i, es)
-    Def   f es -> Just (Def   f, es)
-    MetaV x es -> Just (MetaV x, es)
-    Con{}      -> Nothing
-    Lit{}      -> Nothing
-    Lam{}      -> Nothing
-    Pi{}       -> Nothing
-    Sort{}     -> Nothing
-    Level{}    -> Nothing
-    DontCare{} -> Nothing
-    Dummy{}    -> Nothing
+    Var   i c es -> Just (Var i c, es)
+    Def   f es   -> Just (Def   f, es)
+    MetaV x es   -> Just (MetaV x, es)
+    Con{}        -> Nothing
+    Lit{}        -> Nothing
+    Lam{}        -> Nothing
+    Pi{}         -> Nothing
+    Sort{}       -> Nothing
+    Level{}      -> Nothing
+    DontCare{}   -> Nothing
+    Dummy{}      -> Nothing
 
 ---------------------------------------------------------------------------
 -- * Type family for type-directed operations.
@@ -1170,6 +1175,7 @@ instance Sized a => Sized (Abs a) where
 --     * sort and color annotations,
 --     * projections.
 --
+--  TODO(sam): Should modal projections also not count?
 class TermSize a where
   termSize :: a -> Int
   termSize = getSum . tsize
@@ -1181,7 +1187,7 @@ instance {-# OVERLAPPABLE #-} (Foldable t, TermSize a) => TermSize (t a) where
 
 instance TermSize Term where
   tsize = \case
-    Var _ vs    -> 1 + tsize vs
+    Var _ _ vs  -> 1 + tsize vs
     Def _ vs    -> 1 + tsize vs
     Con _ _ vs    -> 1 + tsize vs
     MetaV _ vs  -> 1 + tsize vs
@@ -1234,7 +1240,7 @@ instance KillRange ConHead where
 
 instance KillRange Term where
   killRange = \case
-    Var i vs    -> killRangeN (Var i) vs
+    Var i c vs  -> killRangeN (Var i c) vs
     Def c vs    -> killRangeN Def c vs
     Con c ci vs -> killRangeN Con c ci vs
     MetaV m vs  -> killRangeN (MetaV m) vs
@@ -1336,7 +1342,7 @@ instance Pretty a => Pretty (Substitution' a) where
 instance Pretty Term where
   prettyPrec p v =
     case v of
-      Var x els -> text ("@" ++ show x) `pApp` els
+      Var x c els -> text ("@" ++ show x) <> text ("^" ++ show c) `pApp` els
       Lam ai b   ->
         mparens (p > 0) $
         sep [ "λ" <+> prettyHiding ai id (text . absName $ b) <+> "->"
@@ -1475,7 +1481,7 @@ instance Pretty a => Pretty (Blocked a) where
 
 instance NFData Term where
   rnf = \case
-    Var _ es   -> rnf es
+    Var _ _ es   -> rnf es
     Lam _ b    -> rnf (unAbs b)
     Lit l      -> rnf l
     Def _ es   -> rnf es

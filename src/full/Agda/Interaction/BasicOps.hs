@@ -295,8 +295,8 @@ refine force ii mr e = do
               metaVar = QuestionMark info ii
 
               count x e = getSum $ foldExpr isX e
-                where isX (A.Var y) | x == y = Sum 1
-                      isX _                  = mempty
+                where isX (A.Var y c') | x == y = Sum 1
+                      isX _                     = mempty
 
               lamView (A.Lam _ (DomainFree _ x) e) = Just (namedArg x, e)
               lamView (A.Lam i (DomainFull (TBind r t (x :| xs) a)) e) =
@@ -308,7 +308,7 @@ refine force ii mr e = do
               smartApp i e arg =
                 case fmap (first A.binderName) (lamView $ unScope e) of
                   Just (A.BindName{unBind = x}, e) | count x e < 2 -> mapExpr subX e
-                    where subX (A.Var y) | x == y = namedArg arg
+                    where subX (A.Var y c) | x == y = namedArg arg
                           subX e = e
                   _ -> App i e arg
           return $ smartApp (defaultAppInfo r) e $ defaultNamedArg metaVar
@@ -780,7 +780,7 @@ getIPBoundary norm ii = withInteractionId ii $ do
 
           -- Reify the IntMap Bool as a list of (i = i0) (j = i1) terms:
           eqns <- forM (IntMap.toList im) $ \(a, b) -> do
-            a <- c (I.Var a [])
+            a <- c (I.Var a Nothing [])
             (,) a <$> c (if b then io else iz)
           pure $ IPFace' eqns rhs
       traverse go $ MapS.toList (getBoundary (ipBoundary ip))
@@ -802,7 +802,7 @@ typeAndFacesInMeta ii norm expr = withInteractionId ii $ do
         face (i, m) = inplaceS i $ if m then io else iz
         sub = foldr (\f s -> composeS (face f) s) idS fa
       eqns <- forM fa $ \(a, b) -> do
-        a <- c (I.Var a [])
+        a <- c (I.Var a Nothing [])
         (,) a <$> c (if b then io else iz)
       fmap (IPFace' eqns) . c =<< simplify (applySubst sub ex)
 
@@ -967,13 +967,13 @@ metaHelperType norm ii rng s = case words s of
                                  . withoutPrintingGeneralization
                                  . dontFoldLetBindings
 
-    case mapM (isVar . namedArg) args >>= \ xs -> xs <$ guard (all inCxt xs) of
+    case mapM (isVar . namedArg) args >>= \ xs -> xs <$ guard (all (inCxt.fst) xs) of
 
      -- Andreas, 2019-10-11
      -- If all arguments are variables, there is no need to abstract.
      -- We simply make exactly the given arguments visible and all other hidden.
      Just xs -> do
-      let inXs = hasElem xs
+      let inXs = hasElem (fst <$> xs)
       let hideButXs ce = setHiding (if inXs (ctxEntryName ce) then NotHidden else Hidden) ce
       let tel = contextToTel . map hideButXs $ contextForAbstracting
       OfType' h <$> do
@@ -1017,9 +1017,9 @@ metaHelperType norm ii rng s = case words s of
       flip (caseMaybe $ isName ce) (\ _ -> return ()) $ do
          reportSLn "interaction.helper" 10 $ "ce = " ++ show ce
          failure
-    isVar :: A.Expr -> Maybe A.Name
+    isVar :: A.Expr -> Maybe (A.Name, Maybe Cell)
     isVar = \case
-      A.Var x -> Just x
+      A.Var x c -> Just (x,c)
       _ -> Nothing
     cleanupType arity args t = do
       -- Get the arity of t
@@ -1058,7 +1058,7 @@ metaHelperType norm ii rng s = case words s of
     onNamesTel f (I.ExtendTel a b) = I.ExtendTel <$> traverse (onNames f) a <*> onNamesAbs f onNamesTel b
 
     onNamesTm f = \case
-      I.Var x es   -> I.Var x <$> onNamesElims f es
+      I.Var x c es   -> I.Var x c <$> onNamesElims f es
       I.Def q es   -> I.Def q <$> onNamesElims f es
       I.Con c ci args -> I.Con c ci <$> onNamesArgs f args
       I.Lam i b    -> I.Lam i <$> onNamesAbs f onNamesTm b
@@ -1088,7 +1088,7 @@ metaHelperType norm ii rng s = case words s of
         arg : args -> do
           put args
           return $ if
-            | Arg _ (Named _ (A.Var x)) <- arg -> prettyShow $ A.nameConcrete x
+            | Arg _ (Named _ (A.Var x c)) <- arg -> prettyShow $ A.nameConcrete x
             | Just x <- bareNameOf arg         -> argNameToString x
             | otherwise                        -> "w"
 

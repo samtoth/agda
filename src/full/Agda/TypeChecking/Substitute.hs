@@ -73,7 +73,7 @@ applyTermE :: forall t. (Coercible Term t, Apply t, EndoSubst t)
 applyTermE err' m [] = m
 applyTermE err' m es = coerce $
     case coerce m of
-      Var i es'   -> Var i (es' ++ es)
+      Var i c es'   -> Var i c (es' ++ es)
       Def f es'   -> defApp f es' es  -- remove projection redexes
       Con c ci args -> conApp @t err' c ci args es
       Lam _ b     ->
@@ -332,7 +332,7 @@ instance Apply Defn where
               where
                 larg  = last1 arg1 args1 -- the record value
                 args' = [larg]
-                isVar0 = case unArg larg of Var 0 [] -> True; _ -> False
+                isVar0 = case unArg larg of Var 0 _ [] -> True; _ -> False
 
     Datatype{ dataPars = np, dataClause = cl } ->
       d { dataPars = np - size args
@@ -827,7 +827,7 @@ instance EndoSubst a => Subst (Substitution' a) where
 applySubstTerm :: forall t. (Coercible t Term, EndoSubst t, Apply t) => Substitution' t -> t -> t
 applySubstTerm IdS t = t
 applySubstTerm rho t    = coerce $ case coerce t of
-    Var i es    -> coerce $ lookupS rho i  `applyE` subE es
+    Var i c es    -> coerce $ lookupS rho i  `applyE` subE es
     Lam h m     -> Lam h $ sub @(Abs t) m
     Def f es    -> defApp f [] $ subE es
     Con c ci vs -> Con c ci $ subE vs
@@ -934,7 +934,7 @@ applyNLPatSubst = applySubst . fmap nlPatToTerm
   where
     nlPatToTerm :: NLPat -> Term
     nlPatToTerm = \case
-      PVar i xs      -> Var i $ map (Apply . fmap var) xs
+      PVar i xs      -> Var i Nothing $ map (Apply . fmap var) xs
       PTerm u        -> u
       PDef f es      -> __IMPOSSIBLE__
       PLam i u       -> __IMPOSSIBLE__
@@ -1220,8 +1220,8 @@ projDropParsApply (Projection prop d r _ lams) o rel args =
     Just (pars, Arg i y) ->
       let irr = isIrrelevant rel
           core
-            | proper && not irr = Lam i $ Abs y $ Var 0 [Proj o d]
-            | otherwise         = Lam i $ Abs y $ Def d [Apply $ Var 0 [] <$ r]
+            | proper && not irr = Lam i $ Abs y $ Var 0 Nothing [Proj o d]
+            | otherwise         = Lam i $ Abs y $ Def d [Apply $ Var 0 Nothing [] <$ r]
             -- Issue2226: get ArgInfo for principal argument from projFromType
       -- Now drop pars many args
           (pars', args') = dropCommon pars args
@@ -1440,18 +1440,18 @@ instance Ord a => Ord (Type' a) where
 
 -- | Syntactic 'Term' equality, ignores stuff below @DontCare@ and sharing.
 instance Eq Term where
-  Var x vs   == Var x' vs'   = x == x' && vs == vs'
-  Lam h v    == Lam h' v'    = h == h' && v  == v'
-  Lit l      == Lit l'       = l == l'
-  Def x vs   == Def x' vs'   = x == x' && vs == vs'
-  Con x _ vs == Con x' _ vs' = x == x' && vs == vs'
-  Pi a b     == Pi a' b'     = a == a' && b == b'
-  Sort s     == Sort s'      = s == s'
-  Level l    == Level l'     = l == l'
-  MetaV m vs == MetaV m' vs' = m == m' && vs == vs'
-  DontCare _ == DontCare _   = True
-  Dummy{}    == Dummy{}      = True
-  _          == _            = False
+  Var x c vs == Var x' c' vs' = x == x' && c == c' && vs == vs'
+  Lam h v    == Lam h' v'     = h == h' && v  == v'
+  Lit l      == Lit l'        = l == l'
+  Def x vs   == Def x' vs'    = x == x' && vs == vs'
+  Con x _ vs == Con x' _ vs'  = x == x' && vs == vs'
+  Pi a b     == Pi a' b'      = a == a' && b == b'
+  Sort s     == Sort s'       = s == s'
+  Level l    == Level l'      = l == l'
+  MetaV m vs == MetaV m' vs'  = m == m' && vs == vs'
+  DontCare _ == DontCare _    = True
+  Dummy{}    == Dummy{}       = True
+  _          == _             = False
 
 instance Eq a => Eq (Pattern' a) where
   VarP _ x        == VarP _ y          = x == y
@@ -1464,7 +1464,7 @@ instance Eq a => Eq (Pattern' a) where
   _               == _                 = False
 
 instance Ord Term where
-  Var a b    `compare` Var x y    = compare (x, b) (a, y)
+  Var a b c  `compare` Var x y z  = compare (x, b, z) (a, y, c)
                                     -- sort de Bruijn indices down (#2765)
   Var{}      `compare` _          = LT
   _          `compare` Var{}      = GT

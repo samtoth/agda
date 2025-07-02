@@ -18,7 +18,7 @@ mentionsMeta = mentionsMetas . HashSet.singleton
 
 instance MentionsMeta Term where
   mentionsMetas xs = \case
-    Var _ args   -> mm args
+    Var _ _ args -> mm args
     Lam _ b      -> mm b
     Lit{}        -> False
     Def _ args   -> mm args

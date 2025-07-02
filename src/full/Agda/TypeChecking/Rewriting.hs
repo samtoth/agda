@@ -408,7 +408,7 @@ checkRewriteRule q = runMaybeT $ setCurrentRange q do
       where
         loop []       = return []
         loop (v : vs) = case unArg v of
-          Var i [] -> (i :) <$> loop vs
+          Var i _ [] -> (i :) <$> loop vs
           _        -> errorNotGeneral
 
         errorNotGeneral :: MaybeT TCM a

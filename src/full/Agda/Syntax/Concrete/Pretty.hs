@@ -131,6 +131,7 @@ instance Pretty a => Pretty (MaybePlaceholder a) where
 instance Pretty Expr where
     pretty = \case
             Ident x          -> pretty x
+            ModProj _ x y    -> pretty x <> hlSymbol "^" <> braces (pretty y)
             KnownIdent nk x  -> annotateAspect (Asp.Name (Just nk) False) (pretty x)
             Lit _ l          -> pretty l
             QuestionMark _ n -> hlSymbol "?" <> maybe empty (text . show) n
@@ -245,7 +246,7 @@ instance Pretty a => Pretty (Binder' a) where
 
 instance Pretty NamedBinding where
   pretty (NamedBinding withH
-           x@(Arg (ArgInfo h (Modality r q c p) _o _fv (Annotation lock))
+           x@(Arg (ArgInfo h (Modality r q c p) m2 _o _fv (Annotation lock))
                (Named _mn xb@(Binder _mp _ (BName _y _fix t _fin))))) =
     applyWhen withH prH $
     applyWhenJust (isLabeled x) (\ l -> (text l <+>) . ("=" <+>)) (pretty xb)
@@ -259,13 +260,16 @@ instance Pretty NamedBinding where
         . (pol <+>)
         . (lck <+>)
         . (tac <+>)
+        . (mtt <+>)
     coh = pretty c
     qnt = pretty q
     pol = pretty p
     tac = pretty t
     lck = pretty lock
+    mtt = pretty m2
+
     -- Parentheses are needed when an attribute @... is printed
-    mparens = applyUnless (null coh && null qnt && null lck && null tac && null pol) parens
+    mparens = applyUnless (null coh && null qnt && null lck && null tac && null pol && null m2) parens
 
 instance Pretty LamBinding where
     pretty (DomainFree x) = pretty (NamedBinding True x)

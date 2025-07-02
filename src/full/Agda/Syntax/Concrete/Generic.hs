@@ -117,6 +117,7 @@ instance (ExprLike a, ExprLike b, ExprLike c, ExprLike d) => ExprLike (a, b, c, 
 instance ExprLike Expr where
   mapExpr f e0 = case e0 of
      Ident{}                 -> f $ e0
+     ModProj{}               -> f $ e0
      Lit{}                   -> f $ e0
      QuestionMark{}          -> f $ e0
      Underscore{}            -> f $ e0

@@ -78,7 +78,7 @@ type Type = Expr
 
 -- | Expressions after scope checking (operators parsed, names resolved).
 data Expr
-  = Var  Name                          -- ^ Bound variable.
+  = Var  Name (Maybe Cell)             -- ^ Bound variable, with a modal projection
   | Def'  QName Suffix                 -- ^ Constant: axiom, function, data or record type,
                                        --   with a possible suffix.
   | Proj ProjOrigin AmbiguousQName     -- ^ Projection (overloaded).
@@ -574,7 +574,7 @@ type HoleContent = C.HoleContent' () BindName Pattern Expr
 instance Eq Expr where
   ScopedExpr _ a1            == ScopedExpr _ a2            = a1 == a2
 
-  Var a1                     == Var a2                     = a1 == a2
+  Var a1 c1                  == Var a2 c2                  = a1 == a2 && c1 == c2
   Def' a1 s1                 == Def' a2 s2                 = (a1, s1) == (a2, s2)
   Proj _ a1                  == Proj _ a2                  = a1 == a2
   Con a1                     == Con a2                     = a1 == a2
@@ -660,7 +660,7 @@ instance HasRange TypedBinding where
     getRange (TLet r _)    = r
 
 instance HasRange Expr where
-    getRange (Var x)                 = getRange x
+    getRange (Var x _)               = getRange x
     getRange (Def' x _)              = getRange x
     getRange (Proj _ x)              = getRange x
     getRange (Con x)                 = getRange x
@@ -793,7 +793,7 @@ instance KillRange TypedBinding where
   killRange (TLet r lbs)     = killRangeN TLet r lbs
 
 instance KillRange Expr where
-  killRange (Var x)                  = killRangeN Var x
+  killRange (Var x c)                = killRangeN (\a -> Var a c) x
   killRange (Def' x v)               = killRangeN Def' x v
   killRange (Proj o x)               = killRangeN (Proj o) x
   killRange (Con x)                  = killRangeN Con x
@@ -905,6 +905,7 @@ instance KillRange LetBinding where
   killRange (LetApply i a b c d e)  = killRangeN LetApply i a b c d e
   killRange (LetOpen i x dir)       = killRangeN LetOpen  i x dir
 
+instance NFData Cell
 instance NFData Expr
 instance NFData ScopeCopyInfo
 instance NFData RecordConName
@@ -1000,7 +1001,7 @@ instance NameToExpr AbstractName where
 
 instance NameToExpr ResolvedName where
   nameToExpr = \case
-    VarName x _          -> Var x
+    VarName x _          -> Var x (error "TODO(sam): What to do here?")
     DefinedName _ x s    -> withSuffix s $ nameToExpr x  -- Can be 'isDefName', 'MacroName', 'QuotableName'.
     FieldName xs         -> Proj ProjSystem . AmbQ . fmap anameName $ xs
     ConstructorName _ xs -> Con . AmbQ . fmap anameName $ xs
@@ -1059,7 +1060,7 @@ instance SubstExpr ModuleName where
 
 instance SubstExpr Expr where
   substExpr s e = case e of
-    Var n           -> fromMaybe e (lookup n s)
+    Var n _         -> fromMaybe e (lookup n s)  -- TODO(sam): subst with modalities
     Con _           -> e
     Proj{}          -> e
     Def' _ _        -> e

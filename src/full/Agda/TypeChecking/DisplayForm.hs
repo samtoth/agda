@@ -189,9 +189,9 @@ instance Match a => Match (Elim' a) where
 
 instance Match Term where
   match w p v = lift (instantiate v) >>= \ v -> case (unSpine p, unSpine v) of
-    (Var i [], v)    | Just j <- inWindow w i -> return $ IntMap.singleton j (WithOrigin Inserted v)
-    (Var i (_:_), v) | Just{} <- inWindow w i -> mzero  -- Higher-order pattern, fail for now.
-    (Var i ps, Var j vs) | i == j  -> match w ps vs
+    (Var i _ [], v)    | Just j <- inWindow w i -> return $ IntMap.singleton j (WithOrigin Inserted v)
+    (Var i _ (_:_), v) | Just{} <- inWindow w i -> mzero  -- Higher-order pattern, fail for now.
+    (Var i c ps, Var j c' vs) | i == j && c == c' -> match w ps vs -- TODO(sam): Should we check here
     (Def c ps, Def d vs) | c == d  -> match w ps vs
     (Con c _ ps, Con d _ vs) | c == d -> match w ps vs
     (Lit l, Lit l')      | l == l' -> return mempty
@@ -245,7 +245,7 @@ instance SubstWithOrigin (Arg Term) where
   substWithOrigin rho ots (Arg ai v) =
     case v of
       -- pattern variable: replace origin if better
-      Var x [] -> case ots !!! x of
+      Var x _ [] -> case ots !!! x of
         Just (WithOrigin o u) -> Arg (mapOrigin (replaceOrigin o) ai) u
         Nothing -> Arg ai $ applySubst rho v -- Issue #2717, not __IMPOSSIBLE__
       -- constructor: recurse

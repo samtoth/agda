@@ -81,7 +81,7 @@ instance (BoundAndUsed a, BoundAndUsed b) => BoundAndUsed (a, b) where
 
 instance BoundAndUsed Expr where
   boundAndUsed = noBindings . \ case
-    Var x                  -> singleUse x
+    Var x _                -> singleUse x
     Def'{}                 -> mempty
     Proj{}                 -> mempty
     Con{}                  -> mempty

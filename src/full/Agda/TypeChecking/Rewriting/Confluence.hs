@@ -584,10 +584,10 @@ instance ParallelReduce Term where
     (Con c ci es) -> (topLevelReductions (Con c ci) es) <|> (Con c ci <$> parReduce es)
 
     -- Congruence cases
-    Lam i u  -> Lam i <$> parReduce u
-    Var x es -> Var x <$> parReduce es
-    Pi a b   -> Pi    <$> parReduce a <*> parReduce b
-    Sort s   -> Sort  <$> parReduce s
+    Lam i u    -> Lam i   <$> parReduce u
+    Var x c es -> Var x c <$> parReduce es
+    Pi a b     -> Pi      <$> parReduce a <*> parReduce b
+    Sort s     -> Sort    <$> parReduce s
 
     -- Base cases
     u@Lit{}      -> return u
@@ -798,9 +798,9 @@ instance AllHoles Term where
     reportSDoc "rewriting.confluence.hole" 60 $ fsep
       [ "Getting holes of term" , prettyTCM u , ":" , prettyTCM a ]
     case u of
-      Var i es       -> do
+      Var i c es       -> do
         ai <- typeOfBV i
-        fmap (Var i) <$> allHoles (ai , Var i) es
+        fmap (Var i c) <$> allHoles (ai , Var i c) es
       Lam i u        -> do
         ~(Pi b c) <- unEl <$> reduce a
         fmap (Lam i) <$> allHoles (b,c) u
@@ -879,7 +879,7 @@ instance MetasToVars a => MetasToVars (Abs a) where
 
 instance MetasToVars Term where
   metasToVars = \case
-    Var i es   -> Var i    <$> metasToVars es
+    Var i c es -> Var i c  <$> metasToVars es
     Lam i u    -> Lam i    <$> metasToVars u
     Lit l      -> pure (Lit l)
     Def f es   -> Def f    <$> metasToVars es
@@ -888,7 +888,7 @@ instance MetasToVars Term where
     Sort s     -> Sort     <$> metasToVars s
     Level l    -> Level    <$> metasToVars l
     MetaV x es -> asks ($ x) >>= \case
-      Just i   -> Var i    <$> metasToVars es
+      Just i   -> Var i Nothing   <$> metasToVars es
       Nothing  -> MetaV x  <$> metasToVars es
     DontCare u -> DontCare <$> metasToVars u
     Dummy s es -> Dummy s  <$> metasToVars es

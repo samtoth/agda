@@ -481,12 +481,12 @@ defineKanOperationR cmd name params fsT fns rect = do
                   -- Γ = Δ^I , CompRArgs
                   -- pats = ... | phi = i1
                   -- body = a0
-                  DoTransp -> (1,Var 0 [])
+                  DoTransp -> (1,Var 0 Nothing [])
                   -- HCompRArgs = phi : I, u : .., a0 : ..
                   -- Γ = Δ, CompRArgs
                   -- pats = ... | phi = i1
                   -- body = u i1 itIsOne
-                  DoHComp  -> (2,Var 1 [] `apply` [argN io, setRelevance irrelevant $ argN one])
+                  DoHComp  -> (2,Var 1 Nothing [] `apply` [argN io, setRelevance irrelevant $ argN one])
 
               p = ConP (ConHead io_name IsData Inductive [])
                        (noConPatternInfo { conPType = Just (Arg defaultArgInfo tInterval)
@@ -660,7 +660,7 @@ checkRecordProjections m r hasNamedCon con tel ftel fs = do
           t''      = applySubst (parallelS vs) t'
           finalt   = telePi (replaceEmptyName "r" tel) t''
           projname = qualify m $ qnameName x
-          projcall o = Var 0 [Proj o projname]
+          projcall o = Var 0 Nothing [Proj o projname]
           rel      = getRelevance ai
           -- the recursive call
           recurse  = checkProjs (abstract ftel1 $ ExtendTel dom

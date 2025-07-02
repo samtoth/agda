@@ -192,6 +192,7 @@ sizeView v = do
 
 data ProjectedVar = ProjectedVar
   { pvIndex :: Int
+  , pvCell  :: Maybe Cell
   , prProjs :: [(ProjOrigin, QName)]
   }
   deriving (Show)
@@ -199,16 +200,16 @@ data ProjectedVar = ProjectedVar
 -- | Ignore 'ProjOrigin' in equality test.
 
 instance Eq ProjectedVar where
-  ProjectedVar i prjs == ProjectedVar i' prjs' =
-    i == i' && map snd prjs == map snd prjs'
+  ProjectedVar i c prjs == ProjectedVar i' c' prjs' =
+    i == i' && c == c' && map snd prjs == map snd prjs'
 
 viewProjectedVar :: Term -> Maybe ProjectedVar
 viewProjectedVar = \case
-  Var i es -> ProjectedVar i <$> mapM isProjElim es
+  Var i c es -> ProjectedVar i c <$> mapM isProjElim es
   _ -> Nothing
 
 unviewProjectedVar :: ProjectedVar -> Term
-unviewProjectedVar (ProjectedVar i prjs) = Var i $ map (uncurry Proj) prjs
+unviewProjectedVar (ProjectedVar i c prjs) = Var i c $ map (uncurry Proj) prjs
 
 type Offset = Nat
 

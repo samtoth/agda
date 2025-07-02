@@ -149,10 +149,10 @@ instance ForceNotFree Type where
 
 instance ForceNotFree Term where
   forceNotFree' = \case
-    Var x es   -> do
+    Var x c es   -> do
       metas <- ask
       modify $ IntMap.adjust (const $ MaybeFree metas) x
-      Var x <$> forceNotFree' es
+      Var x c <$> forceNotFree' es
     Def f es   -> Def f    <$> forceNotFree' es
     Con c h es -> Con c h  <$> forceNotFree' es
     MetaV x es -> local (insertMetaSet x) $

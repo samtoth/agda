@@ -76,6 +76,7 @@ data Symbol
         | SymDoubleOpenBrace  | SymDoubleCloseBrace
         | SymOpenBrace        | SymCloseBrace
         | SymOpenVirtualBrace | SymCloseVirtualBrace
+        | SymOpenExpBrace
         | SymOpenPragma       | SymClosePragma | SymEllipsis | SymDotDot
         | SymEndComment -- ^ A misplaced end-comment "-}".
     deriving (Eq, Show)

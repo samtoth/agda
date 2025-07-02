@@ -585,7 +585,7 @@ slowReduceTerm v = do
                     {- else -} done
       Pi _ _   -> done
       Lit _    -> done
-      Var _ es  -> iapp es
+      Var _ _ es  -> iapp es
       Lam _ _  -> done
       DontCare _ -> done
       Dummy{}    -> done
@@ -1081,7 +1081,7 @@ instance Simplify Term where
       Level l    -> levelTm  <$> simplify' l
       Pi a b     -> Pi       <$> simplify' a <*> simplify' b
       Lit l      -> return v
-      Var i vs   -> iapp vs $ Var i    <$> simplify' vs
+      Var i c vs   -> iapp vs $ Var i c  <$> simplify' vs
       Lam h v    -> Lam h    <$> simplify' v
       DontCare v -> dontCare <$> simplify' v
       Dummy{}    -> return v
@@ -1271,7 +1271,7 @@ instance Normalise Term where
 
 slowNormaliseArgs :: Term -> ReduceM Term
 slowNormaliseArgs = \case
-  Var n vs    -> Var n      <$> normalise' vs
+  Var n c vs  -> Var n c    <$> normalise' vs
   Con c ci vs -> Con c ci   <$> normalise' vs
   Def f vs    -> Def f      <$> normalise' vs
   MetaV x vs  -> MetaV x    <$> normalise' vs
@@ -1486,7 +1486,7 @@ instance InstantiateFull Term where
       -- but removing etaOnce now breaks everything
       where
         recurse = \case
-          Var n vs    -> Var n <$> instantiateFull' vs
+          Var n c vs  -> Var n c <$> instantiateFull' vs
           Con c ci vs -> Con c ci <$> instantiateFull' vs
           Def f vs    -> Def f <$> instantiateFull' vs
           MetaV x vs  -> MetaV x <$> instantiateFull' vs

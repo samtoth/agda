@@ -631,7 +631,7 @@ instance TermToPattern Term DeBruijnPattern where
        else fallback
     DontCare t  -> termToPattern t -- OR: __IMPOSSIBLE__  -- removed by stripAllProjections
     -- Leaves.
-    Var i []    -> varP . (`DBPatVar` i) . prettyShow <$> nameOfBV i
+    Var i _ []    -> varP . (`DBPatVar` i) . prettyShow <$> nameOfBV i
     Lit l       -> return $ litP l
     Dummy s _   -> __IMPOSSIBLE_VERBOSE__ s
     t           -> fallback
@@ -1042,7 +1042,7 @@ instance ExtractCalls Term where
       Lam h b -> extract b
 
       -- Neutral term. Destroys guardedness.
-      Var i es -> terUnguarded $ extract es
+      Var i _ es -> terUnguarded $ extract es
 
       -- Dependent function space.
       Pi a (Abs x b) ->
@@ -1300,7 +1300,7 @@ instance StripAllProjections Args where
 instance StripAllProjections Term where
   stripAllProjections t = do
     case t of
-      Var i es   -> Var i <$> stripAllProjections es
+      Var i c es   -> Var i c <$> stripAllProjections es
       Con c ci ts -> do
         -- Andreas, 2019-02-23, re #2613.  This is apparently not necessary:
         -- c <- fromRightM (\ err -> return c) $ getConForm (conName c)
@@ -1330,7 +1330,7 @@ compareTerm' v mp@(Masked m p) = do
 
     -- Andreas, 2013-11-20 do not drop projections,
     -- in any case not coinductive ones!:
-    (Var i es, _) | Just{} <- allApplyElims es ->
+    (Var i _ es, _) | Just{} <- allApplyElims es ->
       compareVar i mp
 
     (DontCare t, _) ->
@@ -1401,7 +1401,7 @@ subTerm t p = if equal t p then Order.le else properSubTerm t p
       and $ (conName c == conName c')
           : (length ts == length ps)
           : zipWith (\ t p -> equal (unArg t) (namedArg p)) ts ps
-    equal (Var i []) (VarP _ x) = i == dbPatVarIndex x
+    equal (Var i _ []) (VarP _ x) = i == dbPatVarIndex x
     equal (Lit l)    (LitP _ l') = l == l'
     -- Terms.
     -- Checking for identity here is very fragile.

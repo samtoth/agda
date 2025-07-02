@@ -683,7 +683,7 @@ collectLHSVars ii = do
             ]
           reportSDoc "mimer" 60 $ "Shift:" <+> pretty shift
 
-          makeOpen [ (Var (n + shift) [], (i - parCount) <$ guard underCon)    -- We count arguments excluding module parameters
+          makeOpen [ (Var (n + shift) Nothing [], (i - parCount) <$ guard underCon)    -- We count arguments excluding module parameters
                    | (i, nap) <- zip [0..] naps
                    , (n, underCon) <- go False $ namedThing $ unArg nap
                    ]
@@ -1555,7 +1555,7 @@ bench k ma = billTo (mimerAccount : k) ma
 getLocalVars :: Int -> Cost -> TCM [Component]
 getLocalVars localCxt cost = do
   typedTerms <- getLocalVarTerms localCxt
-  let varZeroDiscount (Var 0 []) = 1
+  let varZeroDiscount (Var 0 _ []) = 1
       varZeroDiscount _          = 0
   mapM (\(term, domTyp) -> newComponent [] (cost - varZeroDiscount term) noName 0 term (unDom domTyp)) typedTerms
 

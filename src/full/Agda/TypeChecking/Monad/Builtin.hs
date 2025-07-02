@@ -623,7 +623,7 @@ getPrimName ty = do
   case lamV ty of
             (_, Def path _) -> path
             (_, Con nm _ _)   -> conName nm
-            (_, Var 0 [Proj _ l]) -> l
+            (_, Var 0 _ [Proj _ l]) -> l
             (_, t)          -> __IMPOSSIBLE__
 
 getBuiltinName' :: HasBuiltins m => BuiltinId -> m (Maybe QName)

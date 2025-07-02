@@ -473,7 +473,7 @@ matchPat p q = case p of
 -- | Unfold one level of a dot pattern to a proper pattern if possible.
 unDotP :: (MonadReduce m, DeBruijn a) => Pattern' a -> m (Pattern' a)
 unDotP (DotP o v) = reduce v >>= \case
-  Var i [] -> return $ deBruijnVar i
+  Var i _ [] -> return $ deBruijnVar i
   Con c _ vs -> do
     let ps = map (fmap $ unnamed . DotP o) $ fromMaybe __IMPOSSIBLE__ $ allApplyElims vs
     return $ ConP c noConPatternInfo ps

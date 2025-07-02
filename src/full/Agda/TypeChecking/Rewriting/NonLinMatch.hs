@@ -372,9 +372,9 @@ instance Match NLPat Term where
         Sort s -> match r gamma k () ps s
         v -> maybeBlock v
       PBoundVar i ps -> case v of
-        Var i' es | i == i' -> do
+        Var i' c es | i == i' -> do
           let ti = maybe __IMPOSSIBLE__ (unDom . ctxEntryDom) $ lookupBV_ i k
-          match r gamma k (ti , Var i) ps es
+          match r gamma k (ti , Var i c) ps es
         _ | Pi a b <- unEl t -> do
           let ai    = domInfo a
               pbody = PBoundVar (1 + i) $ raise 1 ps ++ [ Apply $ Arg ai $ PTerm $ var 0 ]

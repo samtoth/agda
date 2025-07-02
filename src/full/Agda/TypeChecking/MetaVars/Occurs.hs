@@ -435,9 +435,9 @@ instance Occurs Term where
         reportSDoc "tc.meta.occurs" 70 $
           nest 2 $ pretty v
         case v of
-          Var i es   -> do
+          Var i c es  -> do
             allowed <- getAll . ($ unitModality) <$> variable i
-            if allowed then Var i <$> weakly (occurs es) else do
+            if allowed then Var i c <$> weakly (occurs es) else do
               -- if the offending variable is of singleton type,
               -- eta-expand it away
               reportSDoc "tc.meta.occurs" 35 $ "offending variable: " <+> prettyTCM (var i)
@@ -509,7 +509,7 @@ instance Occurs Term where
   metaOccurs m v = do
     v <- instantiate v
     case v of
-      Var i vs   -> metaOccurs m vs
+      Var i _ vs   -> metaOccurs m vs
       Lam h f    -> metaOccurs m f
       Level l    -> metaOccurs m l
       Lit l      -> return ()
@@ -721,7 +721,7 @@ hasBadRigid xs t = do
   tb <- reduceB t
   let t = ignoreBlocking tb
   case t of
-    Var x _      -> return $ not $ xs x
+    Var x _ _      -> return $ not $ xs x
     -- Issue 1153: A lambda has to be considered matchable.
     -- Lam _ v    -> hasBadRigid (0 : map (+1) xs) (absBody v)
     Lam _ v      -> failure
@@ -811,7 +811,7 @@ instance AnyRigid Term where
     case ignoreBlocking b of
       -- Upon entry, we are in rigid position, thus,
       -- bound variables are rigid ones.
-      Var i es   -> f i `or2M` anyRigid f es
+      Var i _ es -> f i `or2M` anyRigid f es
       Lam _ t    -> anyRigid f t
       Lit{}      -> return False
       Def _ es   -> case b of

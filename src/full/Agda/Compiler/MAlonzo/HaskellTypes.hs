@@ -131,7 +131,7 @@ haskellType' t = runToHs (unEl t) (fromType t)
       reportSDoc "compile.haskell.type" 50 $ "toHaskellType " <+> pretty v
       kit <- liftTCM coinductionKit
       case v of
-        Var x es -> do
+        Var x _ es -> do
           let args = fromMaybe __IMPOSSIBLE__ $ allApplyElims es
           hsApp . hsVar <$> getHsVar x <*> fromArgs args
         Def d es -> do
@@ -195,7 +195,7 @@ hsTypeApproximation poly fv t = do
         reportSDoc "compile.haskell.type" 50 $ "hsTypeApproximation " <+> pretty t
         t <- unSpine <$> reduce t
         case t of
-          Var i _ | poly == PolyApprox -> return $ tyVar n i
+          Var i _ _ | poly == PolyApprox -> return $ tyVar n i
           Pi a b -> hsFun <$> go n (unEl $ unDom a) <*> go (n + k) (unEl $ unAbs b)
             where k = case b of Abs{} -> 1; NoAbs{} -> 0
           Def q els

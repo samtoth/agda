@@ -128,7 +128,7 @@ nelimsProjPrefix e d es =
 -- | A.App
 isSelf :: Expr -> Bool
 isSelf = \case
-  A.Var n -> nameIsRecordName n
+  A.Var n c -> nameIsRecordName n
   _ -> False
 
 {-# SPECIALIZE elims :: Expr -> [I.Elim' Expr] -> TCM Expr #-}
@@ -319,7 +319,7 @@ reifyDisplayFormP f ps wps = do
 
     okToDrop :: Arg I.Term -> Bool
     okToDrop arg = notVisible arg && case unArg arg of
-      I.Var _ []   -> True
+      I.Var _ _ []   -> True
       I.DontCare{} -> True  -- no matching on irrelevant things.  __IMPOSSIBLE__ anyway?
       I.Level{}    -> True  -- no matching on levels. __IMPOSSIBLE__ anyway?
       _ -> False
@@ -333,7 +333,7 @@ reifyDisplayFormP f ps wps = do
     okElim I.Proj{}  = True
 
     okTerm :: I.Term -> Bool
-    okTerm (I.Var _ []) = True
+    okTerm (I.Var _ _ []) = True
     okTerm (I.Con c ci vs) = all okElim vs
     okTerm (I.Def x []) = isNoName $ qnameToConcrete x -- Handling wildcards in display forms
     okTerm _            = False
@@ -370,7 +370,7 @@ reifyDisplayFormP f ps wps = do
         termToPat :: MonadReify m => DisplayTerm -> m (Named_ A.Pattern)
 
         -- Main action HERE:
-        termToPat (DTerm (I.Var n [])) =
+        termToPat (DTerm (I.Var n _ [])) =
           return $ unArg $ fromMaybe __IMPOSSIBLE__ $ ps !!! n
 
         termToPat (DCon c ci vs)          = fmap unnamed <$> tryRecPFromConP =<< do
@@ -408,7 +408,7 @@ reifyDisplayFormP f ps wps = do
             I.Def f es -> do
               let vs = fromMaybe __IMPOSSIBLE__ $ mapM isApplyElim es
               apps (A.Def f) =<< argsToExpr vs
-            I.Var n es -> do
+            I.Var n _ es -> do
               let vs = fromMaybe __IMPOSSIBLE__ $ mapM isApplyElim es
               -- Andreas, 2014-06-11  Issue 1177
               -- due to β-normalization in substitution,
@@ -463,7 +463,7 @@ tryReifyAsLetBinding v fallback = ifM (asksTC $ not . envFoldLetBindings) fallba
     return [ (body, name) | (LetBinding UserWritten body _, name) <- opened, not $ isNoName name ]  -- Only fold user-written lets
   matchingBindings <- filterM (\t -> checkSyntacticEquality v (fst t) (\_ _ -> return True) (\_ _ -> return False)) letBindings
   case matchingBindings of
-    (_, name) : _ -> return $ A.Var name
+    (_, name) : _ -> return $ A.Var name (error "TODO(sam): Not sure here")
     []            -> fallback
 
 {-# SPECIALIZE reifyTerm :: Bool -> Term -> TCM Expr #-}
@@ -505,13 +505,13 @@ reifyTerm expandAnonDefs0 v0 = tryReifyAsLetBinding v0 $ do
   case unSpine' prefixize v of
     -- Hack to print generalized field projections with nicer names. Should
     -- only show up in errors. Check the spined form!
-    _ | I.Var n (I.Proj _ p : es) <- v,
+    _ | I.Var n c (I.Proj _ p : es) <- v,
         Just name <- getGeneralizedFieldName p -> do
       let fakeName = (qnameName p) {nameConcrete = C.simpleName name} -- TODO: infix names!?
-      elims (A.Var fakeName) =<< reify es
-    I.Var n es -> do
+      elims (A.Var fakeName c) =<< reify es
+    I.Var n c es -> do
       x <- fromMaybeM (freshName_ $ "@" ++ show n) $ nameOfBV' n
-      elims (A.Var x) =<< reify es
+      elims (A.Var x c) =<< reify es
     I.Def x es -> do
       reportSDoc "reify.def" 80 $ return $ "reifying def" <+> pretty x
       (x, es) <- reifyPathPConstAsPath x es
@@ -1127,7 +1127,7 @@ instance BlankVars A.Pattern where
 instance BlankVars A.Expr where
   blank bound e = case e of
     A.ScopedExpr i e         -> A.ScopedExpr i $ blank bound e
-    A.Var x                  -> if x `Set.member` bound then e
+    A.Var x _                -> if x `Set.member` bound then e
                                 else A.Underscore emptyMetaInfo  -- Here is the action!
     A.Def' _ _               -> e
     A.Proj{}                 -> e
@@ -1275,7 +1275,7 @@ reifyPatterns = mapM $ (stripNameFromExplicit . stripHidingFromPostfixProj) <.>
         PatOWild   -> return $ A.WildP patNoRange
         PatOAbsurd -> return $ A.AbsurdP patNoRange
         -- If Agda turned a user variable @x@ into @.x@, print it back as @x@.
-        o@(PatOVar x) | I.Var i [] <- v -> do
+        o@(PatOVar x) | I.Var i c [] <- v -> do
           x' <- nameOfBV i
           if nameConcrete x == nameConcrete x' then
             return $ A.VarP $ mkBindName x'
@@ -1499,16 +1499,16 @@ instance Reify Sort where
           pis <- freshName_ ("piSort" :: String) -- TODO: hack
           (e1,e2) <- reify (s1, I.Lam defaultArgInfo $ fmap Sort s2)
           let app x y = A.App defaultAppInfo_ x (defaultNamedArg y)
-          return $ A.Var pis `app` e1 `app` e2
+          return $ A.Var pis Nothing `app` e1 `app` e2
         I.FunSort s1 s2 -> do
           funs <- freshName_ ("funSort" :: String) -- TODO: hack
           (e1,e2) <- reify (s1 , s2)
           let app x y = A.App defaultAppInfo_ x (defaultNamedArg y)
-          return $ A.Var funs `app` e1 `app` e2
+          return $ A.Var funs Nothing `app` e1 `app` e2
         I.UnivSort s -> do
           univs <- freshName_ ("univSort" :: String) -- TODO: hack
           e <- reify s
-          return $ A.App defaultAppInfo_ (A.Var univs) $ defaultNamedArg e
+          return $ A.App defaultAppInfo_ (A.Var univs Nothing) $ defaultNamedArg e
         I.MetaS x es -> reify $ I.MetaV x es
         I.DefS d es -> reify $ I.Def d es
         I.DummyS s -> return $ A.Lit empty $ LitString $ T.pack s
@@ -1523,7 +1523,7 @@ instance Reify Level where
     -- While type checking the level builtins, they are not
     -- available for debug printing.  Thus, print some garbage instead.
     name <- freshName_ (".#Lacking_Level_Builtins#" :: String)
-    return $ A.Var name
+    return $ A.Var name Nothing
 {-# SPECIALIZE reify :: Level -> TCM (ReifiesTo Level) #-}
 
 instance (Free i, Reify i) => Reify (Abs i) where

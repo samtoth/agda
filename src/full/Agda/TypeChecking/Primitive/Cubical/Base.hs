@@ -371,7 +371,7 @@ decomposeInterval' t = do
     f (INeg x) =
       map (either (\ (x,y) -> Left (x,not y)) (Right . unview . INeg . argN))
         <$> (f . view . unArg) x
-    f (OTerm (Var i [])) = return [Left (i,True)]
+    f (OTerm (Var i _ [])) = return [Left (i,True)]
     f (OTerm t)          = return [Right t]
 
   return [ (bsm, ts)

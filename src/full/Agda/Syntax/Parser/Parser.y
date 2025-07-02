@@ -207,6 +207,7 @@ import Agda.Utils.Impossible
     '(|'                      { TokSymbol SymOpenIdiomBracket $$ }
     '|)'                      { TokSymbol SymCloseIdiomBracket $$ }
     '(|)'                     { TokSymbol SymEmptyIdiomBracket $$ }
+    '^{'                      { TokSymbol SymOpenExpBrace $$ }
     '{{'                      { TokSymbol SymDoubleOpenBrace $$ }
     '}}'                      { TokSymbol SymDoubleCloseBrace $$ }
     '{'                       { TokSymbol SymOpenBrace $$ }
@@ -344,6 +345,7 @@ Token
     | '(|'                      { TokSymbol SymOpenIdiomBracket $1 }
     | '|)'                      { TokSymbol SymCloseIdiomBracket $1 }
     | '(|)'                     { TokSymbol SymEmptyIdiomBracket $1 }
+    | '^{'                      { TokSymbol SymOpenExpBrace $1 }
     | '{{'                      { TokSymbol SymDoubleOpenBrace $1 }
     | '}}'                      { TokSymbol SymDoubleCloseBrace $1 }
     | '{'                       { TokSymbol SymOpenBrace $1 }
@@ -484,7 +486,7 @@ ModalArgIds : Attributes ArgIds  {% ($1,) `fmap` mapM (applyAttrs $1) $2 }
 -- Attributes are parsed as '@' followed by an atomic expression.
 
 Attribute :: { Attr }
-Attribute : '@' ExprOrAttr  {% toAttribute (getRange ($1,$2)) $2 }
+Attribute : '@' ExprOrAttr  {% toAttribute (getRange ($1,$2)) $2  }
 
 -- Parse a reverse list of modalities
 
@@ -716,6 +718,7 @@ Expr3NoCurly
     | '(|)'                             { IdiomBrackets (getRange $1) [] }
     | '(' ')'                           { Absurd (fuseRange $1 $2) }
     | Id '@' Expr3                      { As (getRange ($1,$2,$3)) $1 $3 }
+    | QId '^{' Id '}'                   { ModProj (getRange ($1,$2)) $1 $3 }
     | '.' Expr3                         { Dot (kwRange $1) $2 }
     | '..' Expr3                        { DoubleDot (kwRange $1) $2 }
     | 'record' '{' RecordAssignments '}' { Rec (kwRange $1) (getRange ($1,$2,$3,$4)) $3 }

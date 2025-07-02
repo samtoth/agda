@@ -1027,8 +1027,8 @@ checkLHS mf = updateModality checkLHS_ where
         ]
 
       -- in order to split, v must be a variable.
-      i <- liftTCM $ addContext tel $ ifJustM (isEtaVar v a) return $
-             softTypeError $ SplitOnNonVariable v a
+      (i,_) <- liftTCM $ addContext tel $ ifJustM (isEtaVar v a) return $
+                 softTypeError $ SplitOnNonVariable v a
 
       let pos = size tel - (i + 1)
           (delta1, tel'@(ExtendTel dom adelta2)) = splitTelescopeAt pos tel -- TODO:: tel' defined but not used
@@ -1228,7 +1228,7 @@ checkLHS mf = updateModality checkLHS_ where
              = ConP c (noConPatternInfo { conPType = Just (Arg defaultArgInfo tInterval)
                                               , conPFallThrough = True })
                           []
-          mkConP (Var i []) = VarP defaultPatternInfo (DBPatVar "x" i)
+          mkConP (Var i _ []) = VarP defaultPatternInfo (DBPatVar "x" i)
           mkConP _          = __IMPOSSIBLE__
           rho0 = fmap mkConP sigma
 

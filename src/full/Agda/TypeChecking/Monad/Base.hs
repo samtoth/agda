@@ -2546,7 +2546,7 @@ projDropPars (Projection Just{} d _ _ lams) o =
   case initLast $ getProjLams lams of
     Nothing -> Def d []
     Just (pars, Arg i y) ->
-      let core = Lam i $ Abs y $ Var 0 [Proj o d] in
+      let core = Lam i $ Abs y $ Var 0 Nothing [Proj o d] in
       List.foldr (\ (Arg ai x) -> Lam ai . NoAbs x) core pars
 -- Projection-like functions:
 projDropPars (Projection Nothing d _ _ lams) o =
@@ -5142,6 +5142,7 @@ data TypeError
         | VariableIsIrrelevant Name
         | VariableIsErased Name
         | VariableIsOfUnusableCohesion Name Cohesion
+        | VariableProjectionIsIllTyped Name Cell Dim Dim
         | LambdaIsErased
         | RecordIsErased
         | InvalidModalTelescopeUse Term Modality Modality Definition

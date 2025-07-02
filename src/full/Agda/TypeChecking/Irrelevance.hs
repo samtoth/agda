@@ -113,7 +113,7 @@ class UsableRelevance a where
 
 instance UsableRelevance Term where
   usableRel rel = \case
-    Var i vs -> do
+    Var i _ vs -> do
       irel <- getRelevance <$> domOfBV i
       let ok = irel `moreRelevant` rel
       reportSDoc "tc.irr" 50 $
@@ -208,7 +208,7 @@ class UsableModality a where
 instance UsableModality Term where
   usableMod mod u = do
    case u of
-    Var i vs -> do
+    Var i _ vs -> do
       imod <- getModality <$> domOfBV i
       let ok = imod `moreUsableModality` mod
       reportSDoc "tc.irr" 50 $

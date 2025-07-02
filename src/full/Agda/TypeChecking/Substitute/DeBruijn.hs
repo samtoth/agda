@@ -28,7 +28,7 @@ instance DeBruijn Term where
   deBruijnVar = var
   deBruijnView u =
     case u of
-      Var i [] -> Just i
+      Var i _ [] -> Just i
       Level l -> deBruijnView l
       _ -> Nothing
 

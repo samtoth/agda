@@ -386,7 +386,7 @@ addTypedPatterns xps ret = do
     lbs = map letBinding ps
 
     letBinding :: (A.Pattern, A.BindName) -> A.LetBinding
-    letBinding (p, n) = A.LetPatBind (A.LetRange r) p (A.Var $ A.unBind n)
+    letBinding (p, n) = A.LetPatBind (A.LetRange r) p (A.Var (A.unBind n) Nothing)
       where r = fuseRange p n
 
   checkLetBindings' lbs ret
@@ -1136,7 +1136,7 @@ checkRecordUpdate cmp kwr ei recexpr fs eupd t = do
       A.App
         (A.defaultAppInfo $ getRange ei)
         (A.Proj ProjSystem $ unambiguous p)
-        (defaultNamedArg $ A.Var name)
+        (defaultNamedArg $ A.Var name Nothing)
     replaceFields _ _ _ me = me  -- other fields get the user-written updates
 
     tryInfer = do
@@ -1606,7 +1606,7 @@ checkDontExpandLast cmp e t = case e of
 isModuleFreeVar :: Int -> TCM Bool
 isModuleFreeVar i = do
   params <- moduleParamsToApply =<< currentModule
-  return $ any ((== Var i []) . unArg) params
+  return $ any ((== Var i Nothing []) . unArg) params
 
 -- | Infer the type of an expression, and if it is of the form
 --   @{tel} -> D vs@ for some datatype @D@ then insert the hidden
@@ -1626,7 +1626,7 @@ inferExprForWith (Arg info e) = verboseBracket "tc.with.infer" 20 "inferExprForW
       -- Andreas 2014-11-06, issue 1342.
       -- Check that we do not `with` on a module parameter!
       case v of
-        Var i [] -> whenM (isModuleFreeVar i) $ do
+        Var i Nothing [] -> whenM (isModuleFreeVar i) $ do
           reportSDoc "tc.with.infer" 80 $ vcat
             [ text $ "with expression is variable " ++ show i
             , "current modules = " <+> do text . show =<< currentModule

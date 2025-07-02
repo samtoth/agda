@@ -456,7 +456,7 @@ tmBoundary = Boundary . map (first var) . theBoundary
 varBoundary :: Boundary' Term a -> Boundary' Int a
 varBoundary = Boundary . map (first unVar) . theBoundary
   where
-    unVar (Var i []) = i
+    unVar (Var i _ []) = i
     unVar _ = __IMPOSSIBLE__
 
 -- | Substitution into a 'Boundary' a priori creates a 'TmBoundary' which we convert back via 'varBoundary'.

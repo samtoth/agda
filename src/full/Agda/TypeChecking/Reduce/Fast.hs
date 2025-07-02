@@ -546,7 +546,7 @@ blackHole ptr = writeSTRef ptr BlackHole
 -- | Create a thunk. If the closure is a naked variable we can reuse the pointer from the
 --   environment to avoid creating long pointer chains.
 createThunk :: Closure s -> ST s (Pointer s)
-createThunk (Closure _ (Var x []) env spine)
+createThunk (Closure _ (Var x c []) env spine)
   | null spine, Just p <- lookupEnv x env = return p
 createThunk cl = Pointer <$> newSTRef (Thunk cl)
 
@@ -940,10 +940,11 @@ reduceTm rEnv bEnv !constInfo normalisation =
         -- Case: variable. Look up the variable in the environment and evaluate the resulting
         -- pointer. If the variable is not in the environment it's a free variable and we adjust the
         -- deBruijn index appropriately.
-        Var x []   ->
+        -- TODO(Sam): Heres the meat of it
+        Var x c []   ->
           evalIApplyAM spine ctrl $
           case lookupEnv x env of
-            Nothing -> runAM (evalValue (notBlocked ()) (Var (x - envSize env) []) emptyEnv spine ctrl)
+            Nothing -> runAM (evalValue (notBlocked ()) (Var (x - envSize env) c []) emptyEnv spine ctrl)
             Just p  -> evalPointerAM p spine ctrl
 
         -- Case: lambda. Perform the beta reduction if applied. Otherwise it's a value.
@@ -970,7 +971,7 @@ reduceTm rEnv bEnv !constInfo normalisation =
         -- eliminations onto the spine.
         Def f   es -> shiftElims (Def f   []) emptyEnv env es
         Con c i es -> shiftElims (Con c i []) emptyEnv env es
-        Var x   es -> shiftElims (Var x   []) env      env es
+        Var x c es -> shiftElims (Var x c []) env      env es
 
         -- Case: metavariable. If it's instantiated evaluate the value. Meta instantiations are open
         -- terms with a specified list of free variables. buildEnv constructs the appropriate
@@ -1006,7 +1007,7 @@ reduceTm rEnv bEnv !constInfo normalisation =
       case t of
         Def _   [] -> normaliseArgsAM (Closure b t emptyEnv []) spine ctrl
         Con _ _ [] -> normaliseArgsAM (Closure b t emptyEnv []) spine ctrl
-        Var _   [] -> normaliseArgsAM (Closure b t emptyEnv []) spine ctrl
+        Var _ _ [] -> normaliseArgsAM (Closure b t emptyEnv []) spine ctrl
         MetaV _ [] -> normaliseArgsAM (Closure b t emptyEnv []) spine ctrl
 
         Lit{} -> runAM done
@@ -1014,7 +1015,7 @@ reduceTm rEnv bEnv !constInfo normalisation =
         -- We might get these from fallbackAM
         Def f   es -> shiftElims (Def f   []) emptyEnv env es
         Con c i es -> shiftElims (Con c i []) emptyEnv env es
-        Var x   es -> shiftElims (Var x   []) env      env es
+        Var x c es -> shiftElims (Var x c []) env      env es
         MetaV m es -> shiftElims (MetaV m []) emptyEnv env es
 
         _ -> fallbackAM s -- fallbackAM knows about NormaliseK
@@ -1078,7 +1079,7 @@ reduceTm rEnv bEnv !constInfo normalisation =
           Apply k : spine' ->
             evalPointerAM (unArg k) (elim : spine') ctrl
           [] -> -- Partial application of primForce to canonical argument, return λ k → k arg.
-            runAM (evalTrueValue (lam (defaultArg "k") $ Var 0 [Apply $ defaultArg $ Var 1 []])
+            runAM (evalTrueValue (lam (defaultArg "k") $ Var 0 Nothing [Apply $ defaultArg $ Var 1 Nothing []])
                                  (argPtr `extendEnv` emptyEnv) [] ctrl)
           _ -> __IMPOSSIBLE__
       | otherwise = rewriteAM (Eval stuck ctrl)
@@ -1248,7 +1249,7 @@ reduceTm rEnv bEnv !constInfo normalisation =
             (spine0, Apply e : spine1) -> do                -- rewriting or 'with'.
               -- Replace e by its projections in the spine. And don't forget a
               -- Catchall frame if there's a catch-all.
-              let projClosure (Arg ai f) = Closure Unevaled (Var 0 []) (extendEnv (unArg e) emptyEnv) [Proj ProjSystem f]
+              let projClosure (Arg ai f) = Closure Unevaled (Var 0 Nothing []) (extendEnv (unArg e) emptyEnv) [Proj ProjSystem f]
               projs <- mapM (createThunk . projClosure) fs
               let spine' = spine0 <> map (Apply . defaultArg) projs <> spine1
                   stack' = caseMaybe ca stack $ \ cc -> Catchall cc spine >: stack

@@ -90,7 +90,7 @@ checkSizeNeverZero u = do
     SizeSuc{}   -> return True  -- OK, a + 1 is never 0.
     OtherSize u ->
       case u of
-        Var i [] -> checkSizeVarNeverZero i
+        Var i _ [] -> checkSizeVarNeverZero i
         -- neutral sizes cannot be guaranteed > 0
         _ -> return False
 
@@ -172,7 +172,7 @@ checkSizeVarNeverZero i = do
               -- Variable 0 has bound @(< j + m)@
               -- meaning that @minval(j) > n - m@, i.e., @minval(j) >= n+1-m@.
               -- Thus, we update the min value for @j@ with function @(max (n+1-m))@.
-              DSizeVar (ProjectedVar j []) m -> do
+              DSizeVar (ProjectedVar j _ []) m -> do
                 reportSLn "tc.size" 60 $ "minSizeVal upper bound v = " ++ show v
                 let ns' = List.updateAt j (max $ n + 1 - m) ns
                 reportSLn "tc.size" 60 $ "minSizeVal ns' = " ++ show (take (length ts + 1) ns')
@@ -271,7 +271,7 @@ deepSizeView v = do
           Def x []        | x == inf -> return $ DSizeInf
           Def x [Apply u] | x == suc -> sizeViewSuc_ suc <$> loop (unArg u)
 
-          Var i es | Just pv <- ProjectedVar i <$> mapM isProjElim es
+          Var i c es | Just pv <- ProjectedVar i c <$> mapM isProjElim es
                                      -> return $ DSizeVar pv 0
           MetaV x us                 -> return $ DSizeMeta x us 0
           v                          -> return $ DOtherSize v
@@ -288,7 +288,7 @@ sizeMaxView v = do
           Def x []                   | Just x == inf -> return $ singleton $ DSizeInf
           Def x [Apply u]            | Just x == suc -> maxViewSuc_ (fromJust suc) <$> loop (unArg u)
           Def x [Apply u1, Apply u2] | Just x == max -> maxViewMax <$> loop (unArg u1) <*> loop (unArg u2)
-          Var i es | Just pv <- ProjectedVar i <$> mapM isProjElim es
+          Var i c es | Just pv <- ProjectedVar i c <$> mapM isProjElim es
                                         -> return $ singleton $ DSizeVar pv 0
           MetaV x us                    -> return $ singleton $ DSizeMeta x us 0
           _                             -> return $ singleton $ DOtherSize v
@@ -584,7 +584,7 @@ oldSizeExpr u = do
     SizeInf     -> patternViolation neverUnblock
     SizeSuc u   -> mapSnd (+ 1) <$> oldSizeExpr u
     OtherSize u -> case u of
-      Var i []  -> return (Rigid i, 0)
+      Var i _ []  -> return (Rigid i, 0)
       MetaV m es | Just xs <- mapM isVar es, fastDistinct xs
                 -> return (SizeMeta m xs, 0)
       _ -> patternViolation neverUnblock
@@ -592,7 +592,7 @@ oldSizeExpr u = do
     isVar (Proj{})  = Nothing
     isVar (IApply _ _ v) = isVar (Apply (defaultArg v))
     isVar (Apply v) = case unArg v of
-      Var i [] -> Just i
+      Var i _ [] -> Just i
       _        -> Nothing
 
 -- | Compute list of size metavariables with their arguments

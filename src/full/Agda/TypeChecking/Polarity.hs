@@ -339,7 +339,7 @@ checkSizeIndex d i a = do
       let (pars, Apply ix : ixs) = splitAt np es
       s <- deepSizeView $ unArg ix
       case s of
-        DSizeVar (ProjectedVar j []) _ | i == j
+        DSizeVar (ProjectedVar j _ []) _ | i == j
           -> return $ not $ freeIn i (pars ++ ixs)
         _ -> return False
     _ -> __IMPOSSIBLE__
@@ -409,7 +409,7 @@ instance HasPolarity Term where
   polarity' i p v = instantiate v >>== \case
     -- Andreas, 2012-09-06: taking the polarity' of the arguments
     -- without taking the variance of the function into account seems wrong.
-    Var n ts
+    Var n _ ts
       | n == i    -> singleton p <> polarity' i Invariant ts
       | otherwise -> polarity' i Invariant ts
     Lam _ t       -> polarity' i p t

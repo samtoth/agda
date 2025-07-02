@@ -243,6 +243,7 @@ instance Unquote ArgInfo where
           [(c `isCon` getBuiltin' builtinArgArgInfo,
               ArgInfo <$> unquoteN h
                       <*> unquoteN m
+                      <*> pure empty
                       <*> pure Reflected
                       <*> pure unknownFreeVariables
                       <*> pure defaultAnnotation)]
@@ -1093,8 +1094,8 @@ evalTCM v = Bench.billTo [Bench.Typing, Bench.Reflection] do
           where
             -- Substitute @Var x@ for @Var y@ in an @Expr@.
             substName :: Name -> Name -> (A.Expr -> A.Expr)
-            substName x y e@(A.Var n)
-                    | y == n    = A.Var x
+            substName x y e@(A.Var n c)
+                    | y == n    = A.Var x c
                     | otherwise = e
             substName _ _ e = e
         substNames' [] [] e = return e

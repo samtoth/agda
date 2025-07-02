@@ -216,9 +216,9 @@ sortOf t = do
         sb <- mapAbstraction adom (sortOf . unEl) b
         inferPiSort (adom $> El sa a) sb
       Sort s     -> return $ univSort s
-      Var i es   -> do
+      Var i c es   -> do
         a <- typeOfBV i
-        sortOfE a (Var i) es
+        sortOfE a (Var i c) es
       Def f es   -> do
         a <- defType <$> getConstInfo f
         sortOfE a (Def f) es

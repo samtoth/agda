@@ -788,7 +788,7 @@ addSuffixConcrete' glyphMode i = set (C.lensQNameName . nameSuffix) suffix
 instance ToConcrete A.Expr where
     type ConOfAbs A.Expr = C.Expr
 
-    toConcrete (Var x)             = KnownIdent Asp.Bound . C.QName <$> toConcrete x
+    toConcrete (Var x _)             = KnownIdent Asp.Bound . C.QName <$> toConcrete x
     toConcrete (Def' x suffix)     = KnownIdent Asp.Function <$> addSuffixConcrete suffix (toConcrete x)
     toConcrete (Proj ProjPrefix p) = KnownIdent Asp.Field <$> toConcrete (headAmbQ p)
     toConcrete (Proj _          p) = C.Dot empty . KnownIdent Asp.Field <$> toConcrete (headAmbQ p)
@@ -1530,7 +1530,7 @@ instance ToConcrete A.Pattern where
       -- gallais, 2019-02-12, issue #3491
       -- Print p as .(p) if p is a variable but there is a projection of the
       -- same name in scope.
-      A.DotP i e@(A.Var v) -> do
+      A.DotP i e@(A.Var v c) -> do
         let r = getRange i
         -- Erase @v@ to a concrete name and resolve it back to check whether
         -- we have a conflicting field name.
@@ -1539,7 +1539,7 @@ instance ToConcrete A.Pattern where
           -- If we do then we print .(v) rather than .v
           Right FieldName{} -> do
             reportSLn "print.dotted" 50 $ "Wrapping ambiguous name " ++ prettyShow (nameConcrete v)
-            C.DotP empty r . C.Paren r <$> toConcrete (A.Var v)
+            C.DotP empty r . C.Paren r <$> toConcrete (A.Var v c)
           Right _ -> printDotDefault i e
           Left _ -> __IMPOSSIBLE__
 
@@ -1631,7 +1631,7 @@ instance HasRange a => HasRange (MaybeSection a) where
     NoSection a -> getRange a
 
 getHead :: A.Expr -> Maybe Hd
-getHead (Var x)          = Just (HdVar x)
+getHead (Var x _)        = Just (HdVar x)
 getHead (Def f)          = Just (HdDef f)
 getHead (Proj o f)       = Just (HdDef $ headAmbQ f)
 getHead (Con c)          = Just (HdCon $ headAmbQ c)
@@ -1676,12 +1676,12 @@ tryToRecoverOpApp e def = fromMaybeM def $
         sectionArgs :: [A.Name] -> [NamedArg (AppInfo, A.Expr)] -> Maybe [NamedArg (MaybeSection (AppInfo, A.Expr))]
         sectionArgs xs = go xs
           where
-            noXs = getAll . foldExpr (\ case A.Var x -> All (x `notElem` xs)
-                                             _       -> All True) . snd . namedArg
+            noXs = getAll . foldExpr (\ case A.Var x _ -> All (x `notElem` xs)
+                                             _         -> All True) . snd . namedArg
             go [] [] = return []
             go (y : ys) (arg : args)
               | visible arg
-              , A.Var y' <- snd $ namedArg arg
+              , A.Var y' _ <- snd $ namedArg arg
               , y == y' = (fmap (YesSection <$) arg :) <$> go ys args
             go ys (arg : args)
               | visible arg, noXs arg = ((fmap . fmap) NoSection arg :) <$> go ys args

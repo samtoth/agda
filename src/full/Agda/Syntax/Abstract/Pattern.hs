@@ -322,7 +322,7 @@ instance PatternToExpr p e => PatternToExpr (Arg p) (Arg e) where
 
 instance PatternToExpr Pattern Expr where
   patToExpr = \case
-    VarP x             -> return $ Var (unBind x)
+    VarP x             -> return $ Var (unBind x) Nothing
     ConP _ c ps        -> app (Con c) <$> patToExpr ps
     ProjP _ o ds       -> return $ Proj o ds
     DefP _ fs ps       -> app (Def $ headAmbQ fs) <$> patToExpr ps

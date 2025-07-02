@@ -104,8 +104,8 @@ instance EmbPrj a => EmbPrj (I.Abs a) where
     valu _         = malformed
 
 instance EmbPrj I.Term where
-  icod_ (Var     a []) = icodeN' (\ a -> Var a []) a
-  icod_ (Var      a b) = icodeN 0 Var a b
+  icod_ (Var   a b []) = icodeN 11 (\ a b -> Var a b []) a b
+  icod_ (Var    a b c) = icodeN 0 Var a b c
   icod_ (Lam      a b) = icodeN 1 Lam a b
   icod_ (Lit      a  ) = icodeN 2 Lit a
   icod_ (Def      a b) = icodeN 3 Def a b
@@ -118,19 +118,19 @@ instance EmbPrj I.Term where
   icod_ (Dummy    a b) = icodeN 10 Dummy a b
 
   value = vcase valu where
-    valu [a]       = valuN var   a
-    valu [0, a, b] = valuN Var   a b
-    valu [1, a, b] = valuN Lam   a b
-    valu [2, a]    = valuN Lit   a
-    valu [3, a, b] = valuN Def   a b
+    valu [11, a, b]   = valuN varC a b
+    valu [0, a, b, c] = valuN Var a b c
+    valu [1, a, b]    = valuN Lam   a b
+    valu [2, a]       = valuN Lit   a
+    valu [3, a, b]    = valuN Def   a b
     valu [4, a, b, c] = valuN Con a b c
-    valu [5, a, b] = valuN Pi    a b
-    valu [6, a, b] = valuN MetaV a b
-    valu [7, a]    = valuN Sort  a
-    valu [8, a]    = valuN DontCare a
-    valu [9, a]    = valuN Level a
-    valu [10, a, b] = valuN Dummy a b
-    valu _         = malformed
+    valu [5, a, b]    = valuN Pi    a b
+    valu [6, a, b]    = valuN MetaV a b
+    valu [7, a]       = valuN Sort  a
+    valu [8, a]       = valuN DontCare a
+    valu [9, a]       = valuN Level a
+    valu [10, a, b]   = valuN Dummy a b
+    valu _            = malformed
 
 instance EmbPrj Level where
   icod_ (Max a b) = icodeN' Max a b

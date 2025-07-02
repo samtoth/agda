@@ -140,13 +140,13 @@ parseVariables f cxt asb ii rng ss = do
       -- has been refined to a module parameter we do allow splitting
       -- on it, since the instantiation could as well have been the
       -- other way around (see #2183).
-      (Just (Var i []), PatternBound _) -> return (i, C.InScope)
+      (Just (Var i _ []), PatternBound _) -> return (i, C.InScope)
       -- Case 1b: the variable has been refined.
       (Just v         , PatternBound _) -> failInstantiatedVar s v
       -- Case 1c: the variable is bound locally (e.g. a record let)
       (Nothing        , PatternBound _) -> failCaseLet s
       -- Case 1d: module parameter
-      (Just (Var i []), LambdaBound ) -> failModuleBound s
+      (Just (Var i _ []), LambdaBound ) -> failModuleBound s
       -- Case 1e: locally lambda-bound variable
       (_              , LambdaBound ) -> failLocal s
       -- Case 1f: let-bound variable
@@ -161,7 +161,7 @@ parseVariables f cxt asb ii rng ss = do
       -- Case 2a: there is a variable with that concrete name in the
       -- clause context. If it is not a parameter, we can make it
       -- visible.
-      Just (x, Var i []) | isParam i -> failHiddenModuleBound s
+      Just (x, Var i _ []) | isParam i -> failHiddenModuleBound s
                          | otherwise -> return (i, C.NotInScope)
       -- Case 2b: there is a variable with that concrete name, but it
       -- has been refined.
@@ -453,10 +453,11 @@ makeCase hole rng s = withInteractionId hole $ locallyTC eMakeCase (const True) 
               split f (mapMaybe (newVar cl) vars) cl
 
   -- Finds the new variable corresponding to an old one, if any.
+  -- TODO(sam): Should take prioroty into account?
   newVar :: SplitClause -> Nat -> Maybe Nat
   newVar c x = case applySplitPSubst (scSubst c) (var x) of
-    Var y [] -> Just y
-    _        -> Nothing
+    Var y _ [] -> Just y
+    _          -> Nothing
 
   -- Check whether clause has been refined after last load.
   -- In this case, we refuse to split, as this might lose the refinements.

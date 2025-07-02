@@ -84,7 +84,7 @@ instance (TermLike a, TermLike b, TermLike c, TermLike d) => TermLike (a, b, c, 
 instance TermLike Term where
 
   traverseTermM f = \case
-    Var i xs    -> f =<< Var i <$> traverseTermM f xs
+    Var i c xs  -> f =<< Var i c <$> traverseTermM f xs
     Def c xs    -> f =<< Def c <$> traverseTermM f xs
     Con c ci xs -> f =<< Con c ci <$> traverseTermM f xs
     Lam h b     -> f =<< Lam h <$> traverseTermM f b
@@ -97,7 +97,7 @@ instance TermLike Term where
     Dummy s xs  -> f =<< Dummy s <$> traverseTermM f xs
 
   foldTerm f t = f t `mappend` case t of
-    Var i xs    -> foldTerm f xs
+    Var i c xs  -> foldTerm f xs
     Def c xs    -> foldTerm f xs
     Con c ci xs -> foldTerm f xs
     Lam h b     -> foldTerm f b

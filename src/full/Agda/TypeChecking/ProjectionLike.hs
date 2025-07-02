@@ -176,7 +176,7 @@ elimView pe v = do
       case pv of
         NoProjection{}        -> return v
         LoneProjectionLike f ai
-          | pe == EvenLone  -> return $ Lam ai $ Abs "r" $ Var 0 [Proj ProjPrefix f]
+          | pe == EvenLone  -> return $ Lam ai $ Abs "r" $ Var 0 Nothing [Proj ProjPrefix f]
           | otherwise     -> return v
         ProjectionView f a es -> (`applyE` (Proj ProjPrefix f : es)) <$> elimView pe (unArg a)
 
@@ -438,9 +438,9 @@ inferNeutral :: (PureTCM m, MonadBlock m) => Term -> m Type
 inferNeutral u = do
   reportSDoc "tc.infer" 20 $ "inferNeutral" <+> prettyTCM u
   case u of
-    Var i es -> do
+    Var i c es -> do
       a <- typeOfBV i
-      loop a (Var i) es
+      loop a (Var i c) es
     Def f es -> do
       whenJustM (isRelevantProjection f) $ \_ -> nonInferable
       a <- defType <$> getConstInfo f

@@ -12,6 +12,9 @@ import Data.List (foldl')
 import Data.Map (Map)
 import qualified Data.Map as Map
 import Data.Maybe
+import Text.Read
+import Data.Peano
+import Debug.Trace
 
 import Agda.Syntax.Common
 import Agda.Syntax.Concrete (Expr(..), TacticAttribute)
@@ -34,6 +37,7 @@ data Attribute
   | CohesionAttribute Cohesion
   | PolarityAttribute PolarityModality
   | LockAttribute      Lock
+  | MTTAttribute MTTModality
   deriving (Show)
 
 instance HasRange Attribute where
@@ -43,6 +47,7 @@ instance HasRange Attribute where
     CohesionAttribute c  -> getRange c
     PolarityAttribute p  -> getRange p
     TacticAttribute e    -> getRange e
+    MTTAttribute e       -> noRange
     LockAttribute l      -> NoRange
 
 instance SetRange Attribute where
@@ -51,6 +56,7 @@ instance SetRange Attribute where
     QuantityAttribute q  -> QuantityAttribute  $ setRange r q
     CohesionAttribute c  -> CohesionAttribute  $ setRange r c
     PolarityAttribute p  -> PolarityAttribute  $ setRange r p
+    MTTAttribute p       -> MTTAttribute p 
     TacticAttribute e    -> TacticAttribute e  -- -- $ setRange r e -- SetRange Expr not yet implemented
     LockAttribute l      -> LockAttribute l
 
@@ -61,6 +67,7 @@ instance KillRange Attribute where
     CohesionAttribute c  -> CohesionAttribute  $ killRange c
     PolarityAttribute p  -> PolarityAttribute  $ killRange p
     TacticAttribute e    -> TacticAttribute    $ killRange e
+    MTTAttribute e       -> MTTAttribute    $ killRange e
     LockAttribute l      -> LockAttribute l
 
 -- | Parsed attribute.
@@ -82,7 +89,7 @@ instance KillRange Attr where
 
 -- | (Conjunctive constraint.)
 
-type LensAttribute a = (LensRelevance a, LensQuantity a, LensCohesion a, LensModalPolarity a, LensLock a)
+type LensAttribute a = (LensRelevance a, LensQuantity a, LensCohesion a, LensModalPolarity a, LensLock a, LensMTT a)
 
 -- | Modifiers for 'Relevance'.
 
@@ -168,14 +175,15 @@ attributesMap = Map.fromListWith __IMPOSSIBLE__ $ concat
 -- | Parsing a string into an attribute.
 
 stringToAttribute :: String -> Maybe Attribute
-stringToAttribute = (`Map.lookup` attributesMap)
+stringToAttribute ('m':cs) = MTTAttribute . flip MTTMod Zero . fromInteger  <$> readMaybe cs
+stringToAttribute s = s `Map.lookup` attributesMap
 
 -- | Parsing an expression into an attribute.
 
 exprToAttribute :: Range -> Expr -> Maybe Attribute
 exprToAttribute r = \case
   e@(Paren _ (Tactic _ t)) -> Just $ TacticAttribute $ Ranged r t
-  e -> setRange r $ stringToAttribute $ prettyShow e
+  e -> let attr = stringToAttribute $ prettyShow e  in setRange r $ trace ("Parsing attr: " <> show attr) $ attr
 
 -- | Setting an attribute (in e.g. an 'Arg').  Overwrites previous value.
 
@@ -186,6 +194,7 @@ setAttribute = \case
   CohesionAttribute  c -> setCohesion  c
   PolarityAttribute  p -> setModalPolarity p
   LockAttribute      l -> setLock      l
+  MTTAttribute       m -> setMTT m
   TacticAttribute t    -> id
 
 
@@ -234,6 +243,13 @@ setPristineLock :: (LensLock a) => Lock -> a -> Maybe a
 setPristineLock q a
   | getLock a == defaultLock = Just $ setLock q a
   | otherwise = Nothing
+ 
+-- | Setting 'MTT' modality if unset.
+
+setPristineMTT :: (LensMTT a) => MTTModality -> a -> Maybe a
+setPristineMTT q a
+  | null (getMTT a) = Just $ setMTT q a
+  | otherwise = Nothing
 
 -- | Setting an unset attribute (to e.g. an 'Arg').
 
@@ -244,6 +260,7 @@ setPristineAttribute = \case
   CohesionAttribute  c -> setPristineCohesion  c
   PolarityAttribute  p -> setPristinePolarity  p
   LockAttribute      l -> setPristineLock      l
+  MTTAttribute       m -> setPristineMTT       m
   TacticAttribute{}    -> Just
 
 -- | Setting a list of unset attributes.

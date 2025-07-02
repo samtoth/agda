@@ -1286,10 +1286,10 @@ checkWhere wh@(A.WhereDecls whmod whNamed ds) ret = do
         typeError $ NamedWhereModuleInRefinedContext args names
       where
         isWeakening [] = True
-        isWeakening (Var i [] : args) = isWk (i - 1) args
+        isWeakening (Var i c [] : args) = isWk (i - 1) args
           where
             isWk i []                = True
-            isWk i (Var j [] : args) = i == j && isWk (i - 1) args
+            isWk i (Var j c' [] : args) = i == j && c == c' && isWk (i - 1) args
             isWk _ _ = False
         isWeakening _ = False
 

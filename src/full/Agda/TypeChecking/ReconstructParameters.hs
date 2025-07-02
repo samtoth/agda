@@ -102,9 +102,9 @@ reconstruct ty v = do
         NoProjection{} -> do
           ty <- defType <$> getConstInfo f
           loop ty (Def f) es
-      Var i es -> do
+      Var i c es -> do
         ty <- typeOfBV i
-        loop ty (Var i) es
+        loop ty (Var i c) es
       MetaV m es -> do
         ty <- getMetaType m
         loop ty (MetaV m) es
