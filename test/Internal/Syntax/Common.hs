@@ -70,9 +70,10 @@ instance CoArbitrary Relevance where
 instance Arbitrary Relevance where
   arbitrary = elements [ relevant, irrelevant, shapeIrrelevant ]
 
+instance CoArbitrary CohMod
 instance CoArbitrary Cohesion
 instance Arbitrary Cohesion where
-  arbitrary = elements $ filter (/= Squash) allCohesions
+  arbitrary = elements $ allCohesions
   -- left division does not respect laws for Squash on the left.
 
 instance CoArbitrary ModalPolarity where

@@ -2791,7 +2791,7 @@ ensureNotLinear s info = do
       -- return $ setQuantity q' info
 
 ensureContinuous :: LensCohesion a => Maybe String -> a -> ScopeM a
-ensureContinuous ms info 
+ensureContinuous ms info
   | isContinuous info = return info
   | otherwise = setCohesion (Coh Continuous Continuous) info <$ do
       whenJust ms \ s -> warning $ FixingCohesion s (getCohesion info) (Coh Continuous Continuous)

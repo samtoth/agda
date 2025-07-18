@@ -1995,8 +1995,8 @@ instance PartialOrd Cohesion where
 
 -- | Flatter is smaller.
 instance PartialOrd CohMod where
-  comparable Flat b = POLE
-  comparable a Sharp = POLE
+  comparable Flat _ = POLE
+  comparable _ Sharp = POLE
   comparable Continuous Continuous = POEQ
   comparable Op Op = POEQ
   comparable _ _ = POAny

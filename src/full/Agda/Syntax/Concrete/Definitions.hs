@@ -611,6 +611,7 @@ niceDeclarations fixs ds = do
      StaticPragma{}                -> keep
      WarningOnImport{}             -> keep
      WarningOnUsage{}              -> keep
+     ModalityPragma{}              -> keep
 
      where keep = return ([NicePragma (getRange p) p], ds)
 
