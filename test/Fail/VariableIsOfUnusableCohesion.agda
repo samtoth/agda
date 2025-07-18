@@ -7,4 +7,4 @@ postulate
   test : {A : Set} (@♭ x : A) → A
 
 -- Expected error:
--- Variable A is declared Squash so it cannot be used here
+-- Variable A is declared Continuous so it cannot be used under a lock of Flat

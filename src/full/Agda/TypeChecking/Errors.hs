@@ -531,8 +531,8 @@ instance PrettyTCM TypeError where
     VariableIsErased x -> fsep $
       "Variable" : prettyTCM (nameConcrete x) : pwords "is declared erased, so it cannot be used here"
 
-    VariableIsOfUnusableCohesion x c -> fsep
-      ["Variable", prettyTCM (nameConcrete x), "is declared", text (show c), "so it cannot be used here"]
+    VariableIsOfUnusableCohesion x (Coh c l) -> fsep
+      ["Variable", prettyTCM (nameConcrete x), "is declared", text (show c), "so it cannot be used under a lock of", text (show l)]
 
     LambdaIsErased -> fwords $ "Erased pattern-matching lambdas may only be used in erased contexts"
 
@@ -2205,6 +2205,8 @@ instance Verbalize CohMod where
 
 instance Verbalize Cohesion where
   verbalize = \case
+    (Coh Continuous Continuous) -> mempty
+    (Coh m Continuous) -> verbalize m
     (Coh r l) -> verbalize l <> " locked " <> verbalize r
 
 instance Verbalize ModalPolarity where
