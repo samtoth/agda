@@ -9,7 +9,7 @@ data ⟨♭|_⟩ {@♭ 𝓤} (@♭ A : Set 𝓤) : Set 𝓤 where
 
 -- The modality pragma means that any modality can split
 -- on this type
-{-# MODALITY ⟨♭|_⟩ #-}
+{-# MODALOP ⟨♭|_⟩ #-}
 
 ε : ∀ {@♭ 𝓤} {@♭ A : Set 𝓤} → ⟨♭| A ⟩ → A
 ε (mod♭ a) = a
@@ -21,7 +21,7 @@ data ⟨♭|_⟩ {@♭ 𝓤} (@♭ A : Set 𝓤) : Set 𝓤 where
 data ⟨♯|_⟩ {𝓤} (@♯ A : Set 𝓤) : Set 𝓤 where
   mod♯ : (@♯ a : A) → ⟨♯| A ⟩
 
-{-# MODALITY ⟨♯|_⟩ #-}
+{-# MODALOP ⟨♯|_⟩ #-}
 
 ♯-map : ∀ {𝓤 𝓥} {A : Set 𝓤} {B : Set 𝓥}
         → ⟨♯| (A → B) ⟩ → ⟨♯| A ⟩ → ⟨♯| B ⟩
@@ -134,7 +134,7 @@ data _+_ (A B : Set) : Set where
 data ⟨Op|_⟩ {@♭ 𝓤} (@♭ A : Set 𝓤) : Set 𝓤 where
   modOp : (@op a : A) → ⟨Op| A ⟩
 
-{-# MODALITY ⟨Op|_⟩ #-}
+{-# MODALOP ⟨Op|_⟩ #-}
 
 ♭op→ : ∀ {@♭ 𝓤} {@♭ A : Set 𝓤} → @♭ ⟨Op| A ⟩ → ⟨♭| A ⟩
 ♭op→ (modOp a) = mod♭ a

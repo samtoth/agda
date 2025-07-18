@@ -169,7 +169,7 @@ import Agda.Utils.Impossible
     'INLINE'                  { TokKeyword KwINLINE $$ }
     'NOINLINE'                { TokKeyword KwNOINLINE $$ }
     'MEASURE'                 { TokKeyword KwMEASURE $$ }
-    'MODALITY'                { TokKeyword KwMODALITY $$ }
+    'MODALOP'                 { TokKeyword KwMODALOP $$ }
     'NO_TERMINATION_CHECK'    { TokKeyword KwNO_TERMINATION_CHECK $$ }
     'NO_POSITIVITY_CHECK'     { TokKeyword KwNO_POSITIVITY_CHECK $$ }
     'NO_UNIVERSE_CHECK'       { TokKeyword KwNO_UNIVERSE_CHECK $$ }
@@ -307,7 +307,7 @@ Token
     | 'INJECTIVE_FOR_INFERENCE' { TokKeyword KwINJECTIVE_FOR_INFERENCE $1 }
     | 'INLINE'                  { TokKeyword KwINLINE $1 }
     | 'MEASURE'                 { TokKeyword KwMEASURE $1 }
-    | 'MODALITY'                { TokKeyword KwMODALITY $1 }
+    | 'MODALOP'                 { TokKeyword KwMODALOP $1 }
     | 'NOINLINE'                { TokKeyword KwNOINLINE $1 }
     | 'NO_POSITIVITY_CHECK'     { TokKeyword KwNO_POSITIVITY_CHECK $1 }
     | 'NO_TERMINATION_CHECK'    { TokKeyword KwNO_TERMINATION_CHECK $1 }
@@ -1806,7 +1806,7 @@ PolarityPragma
 
 ModalityPragma :: { Pragma }
 ModalityPragma
-  : '{-#' 'MODALITY' PragmaQName '#-}'
+  : '{-#' 'MODALOP' PragmaQName '#-}'
     { ModalityPragma (getRange ($1,$2,$3,$4)) $3 }
 
 WarningOnUsagePragma :: { Pragma }
