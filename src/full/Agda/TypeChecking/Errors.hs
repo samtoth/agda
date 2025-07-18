@@ -2205,7 +2205,6 @@ instance Verbalize CohMod where
 
 instance Verbalize Cohesion where
   verbalize = \case
-    (Coh Continuous Continuous) -> mempty
     (Coh m Continuous) -> verbalize m
     (Coh r l) -> verbalize l <> " locked " <> verbalize r
 

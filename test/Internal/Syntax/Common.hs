@@ -73,7 +73,7 @@ instance Arbitrary Relevance where
 instance CoArbitrary CohMod
 instance CoArbitrary Cohesion
 instance Arbitrary Cohesion where
-  arbitrary = elements $ allCohesions
+  arbitrary = elements $ flip Coh Continuous <$> allCmods
   -- left division does not respect laws for Squash on the left.
 
 instance CoArbitrary ModalPolarity where

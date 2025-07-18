@@ -443,7 +443,7 @@ instance EmbPrj Defn where
     N2 0 a                                   -> valuN Axiom a
     N6 1 a b s u c (N6 d e f g h i (N2 j k)) -> valuN (\ a b s -> Function a b s Nothing)
                                                       a b s u c d e f g h i j k
-    N6 2 a b c d e (N6 f g h i j k)          -> valuN Datatype a b c d e f g h i j k
+    N6 2 a b c d e (N6 f g h i j k N0)       -> valuN Datatype a b c d e f g h i j k
     N6 3 a b c d e (N6 f g h i j k (N2 l m)) -> valuN Record a b c d e f g h i j k l m
     N6 4 a b c d e (N6 f g h i j k N0)       -> valuN Constructor a b c d e f g h i j k
     N6 5 a b c d e (N1 f)                    -> valuN Primitive a b c d e f
